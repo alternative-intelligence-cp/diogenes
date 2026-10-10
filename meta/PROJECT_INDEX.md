@@ -1,5 +1,7 @@
 # Diogenes: project index
 
+> **Start with [`OVERVIEW.md`](OVERVIEW.md):** one page on what matters, what is waiting on you, and what you can skip (written 2026-10-10).
+
 A cheat sheet: where everything is, in this repository and outside it. Paths outside the repository are as recorded on 2026-10-10 and should be re-checked when they are used; the Gemini inbox path is as the shared context file gives it.
 
 ## In this repository
