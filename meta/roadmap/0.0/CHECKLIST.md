@@ -29,7 +29,7 @@ One line per acceptance item. Tick with the verifier's seat name and the output 
 - [ ] `python3 -m unittest discover -s tests` → `Ran 18 tests … OK`
 - [ ] `--name author` and `--name libs-seat` refused (`test_register_refuses_reserved`)
 - [ ] No socket, no `--session`, no tty → exit 3 with the DR-107 text (`test_resolve_refuses_without_socket`)
-- [ ] `register` never moves a role (`test_register_never_moves_role`); a non-holder's `role assign` refused (`test_role_assign_by_non_holder_refused`)
+- [ ] `register` never moves a role (`test_register_never_moves_role`); a non-holder's `role assign` refused (`test_role_assign_by_non_holder_refused`); a refresh without `--pid`/`--socket` leaves `pid`, `socket_path` and `pid_ns` unchanged (`test_register_refreshes_same_session`)
 - [ ] `who` states live / live-idle / gone / unknown (`test_who_states`); an impossible check reads `unknown`, never `gone` (`test_process_check_impossible_reads_unknown`); `--json` carries every DR-16 field
 - [ ] `ls ~/.local/share/diogenes 2>&1` → `No such file` (no real store yet)
 
@@ -53,11 +53,11 @@ One line per acceptance item. Tick with the verifier's seat name and the output 
 
 - [ ] `Ran 60 tests … OK`
 - [ ] `grep -c -- '--bare' /home/randy/Workspace/REPOS/nitpick-libs/.internal/credits/run.sh` → 0; `sh -n src/dio_credits_run.sh` ok
-- [ ] `test_post_requires_orchestrator_role`, `test_post_resolves_blob_and_refuses_uncommitted`, `test_post_refuses_unpushed_without_local` pass (DR-102); `test_claim_refuses_forged_poster` passes; `test_task_survives_orchestrator_handoff` passes
+- [ ] `test_post_requires_orchestrator_role`, `test_post_resolves_blob_and_refuses_uncommitted`, `test_post_refuses_unpushed_without_local` pass (DR-102); `test_claim_refuses_forged_poster` passes (a bogus `poster_event`); `test_task_survives_orchestrator_handoff` passes
 - [ ] `test_post_prints_room_and_refuses_below_floor` passes (DR-103)
 - [ ] `test_claim_is_cas_one_winner`, `test_stale_and_repost` pass (DR-100)
 - [ ] `test_verify_refuses_reporter`, `test_verify_subagent_labels` pass (DR-101)
-- [ ] `test_same_four_commands_for_three_kinds` passes (DR-99); `test_credits_wrapper_dry` and `test_credits_wrapper_failure_not_reported` pass with the real `LEDGER.md` unchanged (DR-104)
+- [ ] `test_same_four_commands_for_three_kinds` passes (DR-99); `test_credits_wrapper_dry` (including a job name of the gate's form, `gate-<YYYYmmdd-HHMMSS>-<i>`) and `test_credits_wrapper_failure_not_reported` (stub rc 1; pre-existing out json; `is_error` with rc 0) pass with the real `LEDGER.md` unchanged (DR-104)
 - [ ] `test_show_never_prints_spec_body` passes
 
 ## 0.0.2.1 — meters
@@ -72,7 +72,7 @@ One line per acceptance item. Tick with the verifier's seat name and the output 
 ## 0.0.2.2 — wait and hooks
 
 - [ ] `Ran 87 tests … OK`
-- [ ] Slowest of five `hook inject` runs < 0.15 s by bash `time`, and the logged `elapsed_ms` of those runs within 20 ms of it (block V)
+- [ ] Slowest of five `hook inject` runs < 0.15 s by bash `time`, and the logged `elapsed_ms` of those runs (boot clock, `CLOCK_BOOTTIME` against field 22) within 20 ms of it (block V)
 - [ ] `test_posttooluse_once_per_change` passes (G7 unit); `test_inject_under_1000_chars` passes (DR-24)
 - [ ] `test_inject_never_fails` passes; `test_session_start_output_text_under_300` passes (DR-4); `test_session_start_reserved_name_falls_back_to_anon` passes
 - [ ] `test_wait_wakes_on_task_post`, `test_wait_wakes_on_reply_expected_only`, `test_wait_max_exits_4`, `test_wait_sees_task_posted_before_start`, `test_wait_rearm_does_not_refire_on_same_item` pass (DR-105)
@@ -86,7 +86,7 @@ One line per acceptance item. Tick with the verifier's seat name and the output 
 - [ ] `dio adapter check --account team` → same, or `pending` with the reason
 - [ ] `dio role show diogenes` → `dio-seat → <seat>`; `dio who` lists `author` (terminal)
 - [ ] `wc -l docs/USING.md` ≤ 120; its §4 holds RULES §1's three conditions verbatim
-- [ ] DR-92: `dio send`/`dio inbox` from sandboxed Bash with hooks; and in the `disableAllHooks` probe without them, with `--session`
+- [ ] DR-92: `dio send`/`dio inbox` from sandboxed Bash with hooks; and in the `/tmp/dio-probe-nohooks` probe (`disableAllHooks`) without them, with `--session`
 - [ ] DR-98: `--bare` count 0; agent teams `0` in both settings files (`~/.claude/settings.json` and `~/.claude-team/settings.json`, or `not in settings` with the profile export noted)
 
 ## 0.0.4.0 — the gate
@@ -95,8 +95,8 @@ One line per acceptance item. Tick with the verifier's seat name and the output 
 - [ ] G2: `messages.sh` both sides → `sent 10, received 10, acked 10`; `dio sent --state` each side 10 `acked`; the deny entries present during, removed after
 - [ ] G3: `python3 -m unittest tests.test_leases -v` → the four hazard tests `ok`; replay figures copied from 0.0.1.2
 - [ ] G4: `dio who --json` from each account lists the other's session with `state, name, session_id, ctx_pct`; `live-idle` seen; `dio meters` Team line reads `estimate (method: …, <date>)` or `unknown (missing: …)`
-- [ ] G5: `dio register --name libs-seat …` → `refused: reserved name`; `dio role assign libs-seat --to probe-capture` by `probe-capture` → `refused: only the holder or the author assigns libs-seat`; `dio sent --state --json` shows the send's `to_identity` = the holder; `probe-capture`'s `dio inbox` empty and `dio task list --mine` lists no gate task; the `claude --name libs-seat` session registered as `anon-<sid8>`
-- [ ] G6: `wait_trials.sh 10` → 10 `claimed after` lines, all re-arms the worker's own; `probe-capture` (no wait) gained no turn in 10 minutes
+- [ ] G5: `dio register --name libs-seat …` → `refused: reserved name`; `dio --session <uuid> role assign libs-seat --to probe-capture` by `probe-capture` → `refused: only the holder or the author assigns libs-seat`; `dio sent --state --json` shows the send's `to_identity` = the holder; `probe-capture`'s `dio --session <uuid> inbox` empty, its `dio --session <uuid> task list --reported` empty, and its `dio --session <uuid> task verify <t> …` of the holder's reported `subagent` task → `refused: not the poster or the role's holder`; the `claude --name libs-seat` session registered as `anon-<sid8>`
+- [ ] G6: the ten trial specs written and pushed once before the trials (`tasks_post.sh --commit-only 10 team-session team`); `wait_trials.sh 10` → 10 `claimed after` lines, all re-arms the worker's own; `probe-capture` (no wait) gained no turn in 10 minutes
 - [ ] G7: `dio adapter latency --since <day>` → `p95 < 300`; `n ≥ 200`; five `bash -c 'time …'` runs within 20 ms of the logged figure
 - [ ] G8: the author's `relays today: 0` line
 - [ ] Close: DX results file §Gate; `EXPERIMENTS.md` updated; `ROADMAP.md` 0.0 `DONE (<date>)`; `git log -1 --stat` shows the move to `meta/roadmap/done/0.0/`; `git status -sb` shows `origin/main` in sync
