@@ -75,6 +75,10 @@ Drafted 2026-10-10, revised the same day. Feasibility probes, ordered by what th
   ```
 - Expected: a changelog line naming the WAL-reset race (upstream fixed in 3.51.3, backports 3.44.6 and 3.50.7 [r4 §3]) or none.
 - Decides: no backport → keep the hub as the sole writer from 0.1 and avoid long concurrent reads in 0.0. This is a check, not a pass-or-fail.
+- **RESULT, the WAL half (checked 2026-10-10 15:32 by `nitpick-libs_18`): NO BACKPORT FOUND.**
+  - The installed package is `libsqlite3-0 3.45.1-1ubuntu2.8` (noble-security, 2026-09-03).
+  - Its `changelog.Debian.gz` lists security backports for CVE-2026-39113, CVE-2026-50812/50813, CVE-2026-11822/11824, CVE-2025-7709, CVE-2025-6965, CVE-2025-29087 and earlier. No entry names a WAL-reset race. A search for `wal`, `reset`, `race` and `corrupt` finds only unrelated lines.
+  - **So, by this experiment's rule:** the hub is the sole writer from 0.1, and 0.0 avoids long concurrent reads. DX-1's sandbox-to-sandbox pass does not change this, because the race concerns a WAL reset during concurrent reads, which DX-1 did not exercise.
 - Cost: 5 minutes. Prerequisites: none. UNVERIFIED claims resolved: [r4 §3] (WAL half still open); [r7 §2] FTS5 and [r4 §3] `data_version` now measured.
 
 **DX-2. A `UserPromptSubmit` hook's `additionalContext` reaches the model, within the cap, including on turns started by a cross-session message; a `PostToolUse` hook's `additionalContext` reaches it mid-turn; and the hook sees what a peer message looks like.**
