@@ -1,0 +1,281 @@
+# Diogenes: experiments
+
+Drafted 2026-10-10, revised the same day. Feasibility probes, ordered by what they unblock. Each gives its hypothesis, the exact commands or settings, the expected result, what each outcome decides, its cost, and its prerequisites. "Today" means runnable now on this machine with one account; "second account" means it needs the Team seat. Record every result as a Diogenes fact once the store exists, or in `meta/research/done/` before then, with the clock time and the Claude Code version.
+
+**Safety rules for every probe** [c1 C-5, C-12]: use throwaway directories and `--name` for probe sessions; never run a probe in a working seat; put probe settings in the probe project's `.claude/settings.json`, never in user settings, so a working seat's status line, hooks and guards are never replaced; never touch the system Redis; never `kill -9` a pid you have not checked by name; write probe logs to a private directory (`umask 077`) and redact anything with `TOKEN` in its name.
+
+**Already measured (2026-10-10 12:48, `nitpick-libs_18`, Claude Code 2.1.296, the workbench's sandbox settings):** M1 Unix sockets refused in sandboxed Bash; M2 loopback TCP works within one call; M3 loopback TCP across two calls fails, each call has a private network namespace; M4 SQLite 3.45.1 FTS5 and cross-connection `PRAGMA data_version` work; M5 Redis 7.0.15 stream consumer groups and keyspace notifications work over loopback within one call. The experiments below that these answer are marked **DONE (measured 2026-10-10)**.
+
+## Before cycle 0.0
+
+**DX-1 (revised). Two processes in different namespaces can take one SQLite lease by compare-and-set without error, with exactly one winner per contested round.**
+- Hypothesis: SQLite 3.45.1 in WAL mode serialises `BEGIN IMMEDIATE` writers across processes, and the same holds between a writer on the host and a writer inside a sandboxed Bash call, which M3 shows runs in its own namespaces, on a directory in `allowWrite`.
+- Commands (outside the sandbox, in the author's terminal):
+  ```sh
+  mkdir -p ~/.local/share/diogenes-probe && cd ~/.local/share/diogenes-probe
+  python3 -c 'import sqlite3;print("python sqlite", sqlite3.sqlite_version)'   # dio uses this library, not the CLI
+  sqlite3 probe.db 'PRAGMA journal_mode=wal; CREATE TABLE lease(id TEXT PRIMARY KEY, holder TEXT, fence INTEGER NOT NULL DEFAULT 0, expires_at REAL);'
+  sqlite3 probe.db "INSERT INTO lease VALUES('t', NULL, 0, 0);"
+  cat > take.py <<'EOF'
+  import os, sqlite3, sys, time
+  me, mode, seconds = sys.argv[1], sys.argv[2], float(sys.argv[3])
+  wins = rounds = 0; end = time.time() + seconds
+  def take(ttl):
+      c = sqlite3.connect('probe.db', timeout=5, isolation_level=None)
+      c.execute('PRAGMA busy_timeout=5000'); c.execute('BEGIN IMMEDIATE')
+      r = c.execute("UPDATE lease SET holder=?, fence=fence+1, expires_at=? WHERE id='t' AND (holder IS NULL OR expires_at<?)",
+                    (me, time.time()+ttl, time.time())).rowcount
+      c.execute('COMMIT'); c.close(); return r
+  if mode == 'free':                       # free-running: short TTL, as many takes as possible
+      while time.time() < end: wins += take(0.001); rounds += 1
+  else:                                    # contested: wait for a shared start file per round, one take each
+      while time.time() < end:
+          rounds += 1
+          while not os.path.exists(f'go.{rounds}'):
+              if time.time() > end: break
+              time.sleep(0.005)
+          wins += take(60)
+  print(me, mode, 'rounds', rounds, 'wins', wins)
+  EOF
+  cat > rounds.sh <<'EOF'
+  #!/bin/sh
+  # referee: opens one round per second, clearing the lease between rounds
+  i=1; end=$(( $(date +%s) + $1 ))
+  while [ "$(date +%s)" -lt "$end" ]; do
+    sqlite3 probe.db "UPDATE lease SET holder=NULL, expires_at=0 WHERE id='t';"
+    touch "go.$i"; sleep 1; i=$((i+1))
+  done
+  EOF
+  chmod +x rounds.sh
+  ```
+- Steps:
+  1. Add `~/.local/share/diogenes-probe` to `sandbox.filesystem.allowWrite` in the probe project's `.claude/settings.json` (not user settings).
+  2. **Free-running, overlapping:** on the host, `python3 -I take.py A free 20 &`; at the same moment, in the probe session, ask Claude to run `python3 -I ~/.local/share/diogenes-probe/take.py B free 20` as a background Bash call. Both loops must overlap in time. Afterwards `sqlite3 probe.db 'SELECT fence FROM lease;'` must equal the sum of wins.
+  3. **Contested rounds:** reset the lease, then start `./rounds.sh 30 &` on the host, `python3 -I take.py A contested 30 &` on the host, and the same with `B` as a background sandboxed Bash call. Assert one winner per round (`wins_A + wins_B == rounds` and `fence == rounds`).
+  4. Repeat step 3 with both racers inside sandboxed Bash calls (two background calls), which models two accounts' sandboxes.
+- Expected: no `database is locked` errors; the fence equals the wins; one winner per contested round in every placement.
+- Decides: pass → the 0.0 file-backed CLI (DQ-1 option a). Fail on the host alone → a spool-ingesting hub moves into 0.0. Fail only across the sandbox boundary → in 0.0 Bash use of `dio` is dropped in favour of hooks, and the spool hub moves into 0.0.
+- Cost: 30 minutes. Prerequisites: none.
+
+**DX-7. Ubuntu's sqlite3 3.45.1 carries the WAL-reset fix.** (The FTS5 half is **DONE (measured 2026-10-10)**: M4's FTS5 match returned 1 row on this build, and `PRAGMA data_version` went 2 → 3 on a second connection after the first committed in WAL mode.)
+- Commands:
+  ```sh
+  apt-get changelog sqlite3 2>/dev/null | grep -i -n -E 'wal|3\.45\.1' | head
+  zcat /usr/share/doc/sqlite3/changelog.Debian.gz | head -40
+  ```
+- Expected: a changelog line naming the WAL-reset race (upstream fixed in 3.51.3, backports 3.44.6 and 3.50.7 [r4 §3]) or none.
+- Decides: no backport → keep the hub as the sole writer from 0.1 and avoid long concurrent reads in 0.0. This is a check, not a pass-or-fail.
+- Cost: 5 minutes. Prerequisites: none. UNVERIFIED claims resolved: [r4 §3] (WAL half still open); [r7 §2] FTS5 and [r4 §3] `data_version` now measured.
+
+**DX-2. A `UserPromptSubmit` hook's `additionalContext` reaches the model, within the cap, including on turns started by a cross-session message; a `PostToolUse` hook's `additionalContext` reaches it mid-turn; and the hook sees what a peer message looks like.**
+- Settings in a probe project's `.claude/settings.json` (never user settings):
+  ```json
+  {"hooks":{"UserPromptSubmit":[{"hooks":[{"type":"command","command":"/tmp/dx2.sh","timeout":5}]}],
+            "PostToolUse":[{"hooks":[{"type":"command","command":"/tmp/dx2.sh","timeout":5}]}]}}
+  ```
+  `/tmp/dx2.sh`:
+  ```sh
+  #!/bin/sh
+  ev=$(tee -a "$HOME/.cache/dx2/stdin.jsonl" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("hook_event_name",""))')
+  n=$(cat "$HOME/.cache/dx2/count" 2>/dev/null || echo 0); last=$(cat "$HOME/.cache/dx2/last" 2>/dev/null || echo -1)
+  if [ "$ev" = "PostToolUse" ] && [ "$n" = "$last" ]; then exit 0; fi
+  echo "$n" > "$HOME/.cache/dx2/last"
+  printf '{"hookSpecificOutput":{"hookEventName":"%s","additionalContext":"DIOGENES PROBE: %s unread (m1 notice from probe-b, ack-only). Run dio inbox."}}\n' "$ev" "$n"
+  ```
+  with `umask 077; mkdir -p ~/.cache/dx2` first.
+- Steps: start `claude --name probe-a`; type a prompt; ask Claude what Diogenes context it saw. Mid-turn (give Claude a multi-step task), `echo 1 > ~/.cache/dx2/count` and see whether the next tool call carries the new count exactly once. From a second session `probe-b` on the same account, `SendMessage` to `probe-a`; inspect the log for the `prompt` field and any sender field. Then make the hook print 12,000 characters and observe truncation. Time the hook with `time`.
+- Expected: the probe line is quoted back; the message turn also ran the hook [r1b §3]; the `PostToolUse` injection appears once after the count changes; truncation near 10,000 characters [r3 §What this means, 3]; under 300 ms.
+- Decides: pass → DR-3 on `UserPromptSubmit` plus `PostToolUse` on change. Fail → `Stop` with `decision: block` [r1 §A.2].
+- Cost: 25 minutes. Prerequisites: none.
+
+**DX-3. The identity fields available to a hook, to Bash, to a subagent's Bash, and to the status line; whether the host's `/proc` is visible from sandboxed Bash.**
+- Settings (probe project only): a `SessionStart` hook `/tmp/dx3.sh`:
+  ```sh
+  #!/bin/sh
+  umask 077; mkdir -p "$HOME/.cache/dx3"
+  { echo "--- $(date -u +%FT%TZ) ppid=$PPID $(ps -o comm= -p $PPID)"; cat; env | grep -E '^CLAUDE_' | sed -E 's/(TOKEN=).*/\1<redacted>/'; } >> "$HOME/.cache/dx3/session-start.log"
+  ```
+  and a status-line command that appends its stdin to `~/.cache/dx3/status.jsonl` and then runs the author's existing status-line script, so nothing is replaced.
+- Steps: start one session with `--name probe-c` and one without a name; in each run in Bash `echo "sid=[$CLAUDE_SESSION_ID] sock=[$CLAUDE_CODE_MESSAGING_SOCKET]"`, then `ls /proc/<the ppid from the log>/ && stat -c %Y /proc/<ppid>` (is the host process visible from the sandbox?), then `/status`, `/list-agents`; dispatch a subagent and have it run the same `echo` in its Bash; repeat once with `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`; compare `session_id`, `session_title`, the socket path, the status line's `session_name`, and the transcript path.
+- Expected: hooks give `session_id` and `session_title` (custom names only) and the socket path; `CLAUDE_SESSION_ID` is empty in Bash (observed); `CLAUDE_CODE_MESSAGING_SOCKET` is documented as exported to Bash [r1 §2.1] and is expected in a subagent's Bash too (its sends go out under the parent's address, firsthand §1); whether the scrub removes it is unknown; whether `/proc/<host pid>` is visible from the sandbox is unknown; the status line gives `session_name` for named sessions only [r1b disposition 2].
+- Decides: which fields `dio register` reads from where, the `--how` values, whether DR-107's socket mapping works from Bash and from subagents, and whether DR-108's process check can run from inside the sandbox.
+- Cost: 20 minutes. Prerequisites: none.
+
+**DX-13 (moved before 0.0). A background Bash `until` loop wakes the session when it exits, every time, and its lifetime cap.**
+- Steps: in a probe session ask Claude to run, in the background, `until [ -f ~/.cache/dx13/go ]; do sleep 30; done; echo WAKE`; leave the session idle; after 10 minutes `touch ~/.cache/dx13/go` and record whether a turn starts and what it costs (status-line cost before and after). Repeat with the wait at 2 hours, then overnight, to find any cap. Then repeat with the loop polling `python3 -c 'import sqlite3; …data_version…'` against the DX-1 probe database every 30 s, which is the shape of `dio wait`.
+- Expected: the completion re-invokes the idle session, as observed once on 2026-10-10 (firsthand §2; the observation records no duration); the cap is untested; each exit costs one model turn.
+- Decides: DR-105's poll interval and re-arm rule; whether the 0.0 worker gate ("10 of 10") is reachable; the cheapest wake path for a seat that opts in.
+- Cost: the wait. Prerequisites: none.
+
+**DX-6. Status-line fields on the Max account.**
+- Commands: the status-line command from DX-3 (which tees and then runs the existing script); then `jq '.rate_limits, .model_limits, .context_window.used_percentage, .cost' ~/.cache/dx3/status.jsonl | tail -20`.
+- Expected: `rate_limits.five_hour` and `seven_day` with `used_percentage` and `resets_at`; a `model_limits` line for Fable (observed in `usage-latest.json`); context percentage; `cost.total_cost_usd` and token totals [r1 §7].
+- Decides: `dio meters publish` input; the Fable source (DR-56); the Max cost-to-percentage ratio that DR-109's Team estimate uses.
+- Cost: 5 minutes after DX-3. Prerequisites: DX-3.
+
+**DX-5. The same under the Team config dir, what its managed settings say, and the meters-file hazard.**
+- Commands: `CLAUDE_CONFIG_DIR=~/.claude-team claude --name probe-t` with the DX-2 and DX-3 hooks installed in a probe project's `.claude/settings.json`; `/status`; `/config`; the status line as in DX-6; `claude agents --json`. Before installing any status-line script under the Team config dir, read the author's script and confirm whether it writes the fixed path `~/.claude/usage-latest.json`; if it does, confirm the Team copy is changed to write its own file before it runs, so Max seats' meters are never overwritten [c1 C-4].
+- Expected: hooks run (unless `allowManagedHooksOnly` is set); `rate_limits` absent (documented for Team [r1b disposition 14]); `cost.total_cost_usd` present; the socket directory the same as Max's or different.
+- Decides: the Team half of DR-91; whether DR-55 reads `estimate` or `unknown` for the Team meters; the inputs of DR-109; DQ-4's facts.
+- Cost: 20 minutes. Prerequisites: the second account.
+
+**DX-26 (appended; the critique's "DX-12a"). A mod's `$.session.usage()` and the `session.measure` event carry rate limits on the Team seat.**
+- Setup: a local-directory plugin in a probe project with `register.js` that, on `session.measure`, writes `JSON.stringify($.session.usage())` to `~/.cache/dx26/usage.jsonl` (private directory). No `$.prompt.submit`, no timer that starts a turn, so DQ-7 is not involved.
+- Steps: run it under the Max config dir and under the Team config dir; send two prompts in each; compare `rateLimits` between the two.
+- Expected: unknown on the Team seat; the status line is documented to lack `rate_limits` there, and the mod API returns `{ startedAt, context, rateLimits, cost }` [r1b §6, E14].
+- Decides: whether DR-109's estimate is superseded by a measured Team meter, and whether a mod is installed on the Team seat for telemetry alone.
+- Cost: 30 minutes. Prerequisites: Node; the second account; the Team org not setting `allowManagedModsOnly` (DQ-4).
+
+**DX-4. Native `SendMessage` across two config dirs (the round-1 E1).**
+- Commands:
+  ```sh
+  # terminal 1 (the Max side: leave CLAUDE_CONFIG_DIR unset, so nothing about the default login changes)
+  claude --name probe-a
+  # terminal 2
+  CLAUDE_CONFIG_DIR=~/.claude-team claude --name probe-b
+  # in a third shell
+  ls -la /run/user/1000/cc-socks /tmp/cc-socks-1000 2>&1
+  claude agents --json; CLAUDE_CONFIG_DIR=~/.claude-team claude agents --json
+  ```
+  In each session: `/status` (note `Peer address`), `/list-agents`; ask probe-a to message probe-b; repeat with one side idle, one side in bypass mode, with `crossSessionInbound: "accept"` in both user settings, and with `notify_when_idle: true` from each side.
+- Expected: unknown. The socket is per OS user and nothing documented keys it to the config dir [r1b §1, §7]. `~/.claude.json` "appears to move with" the config dir [r1 §5], so setting `CLAUDE_CONFIG_DIR=~/.claude` explicitly may not behave like leaving it unset; it is left unset [c1 C-12].
+- Decides: DQ-8 and the day-zero doorbell. Diogenes does not depend on either result (R-5).
+- Cost: 15 minutes. Prerequisites: the second account.
+
+## Before cycle 0.1
+
+**DX-8 (narrowed). What a sandboxed Bash can still reach, and how fast the spool round-trips.**
+- **DONE (measured 2026-10-10), the default case:** M1, `socket(AF_UNIX)` is refused outright under the default settings, so the seccomp filter is installed; M3, a loopback listener started in one Bash call is not reachable from another, each call having its own network namespace; M2, loopback within one call works. A hub on a Unix socket or host loopback is therefore unreachable from sandboxed Bash by default.
+- Still open, each under a setting in a probe project's `.claude/settings.json`:
+  1. `"sandbox":{"network":{"allowAllUnixSockets":true}}`: can `python3 -c "import socket;s=socket.socket(socket.AF_UNIX);s.connect('/tmp/hub.sock');print('unix ok')"` connect to a socket served by a 10-line Python server started outside Claude, and is the socket path visible through the mounts (UNVERIFIED [r1b disposition 15])?
+  2. `"network":{"allowedDomains":["127.0.0.1:8788","diogenes.localhost"]}`: does `curl -s -m 3 http://127.0.0.1:8788/` or `curl -s -m 3 http://diogenes.localhost:8788/` reach `python3 -m http.server 8788 --bind 127.0.0.1` on the host through the filtering proxy? (M3's "one remaining network path".)
+  3. `"sandbox":{"excludedCommands":["dio *"]}`: does an excluded `dio` reach the host socket, at the cost of running unsandboxed?
+  4. **Spool latency:** with a 20-line Python inotify ingester on the host watching `~/.local/share/diogenes-probe/spool/`, have sandboxed Bash write 100 request files and read the reply files; record the median and 95th-percentile round trip, and whether inotify events from a bind-mounted write arrive at all (if not, measure a 50 ms polling ingester instead).
+- Expected from the docs: 1 unknown; 2 may work ([r1b §8] names `"127.0.0.1:8080"` in `allowedDomains` as the documented route for proxied localhost); 3 works [r1b §8]; 4 unknown.
+- Decides: whether the 0.1 spool is the only Bash path or whether a proxied HTTP transport can join it; the 0.1 gate's latency figure; whether the hub listens on HTTP as well as the socket.
+- Cost: 40 minutes. Prerequisites: none.
+
+**DX-9. A `PreToolUse` guard denies Edit, Write and Bash without the lease, inside a subagent too, and fails closed with `onFailure: "block"`.**
+- Settings, in the probe project's `.claude/settings.json` only (a user-level deny guard would block every working seat):
+  ```json
+  {"hooks":{"PreToolUse":[{"matcher":"Edit|Write|MultiEdit|Bash","hooks":[{"type":"command","command":"/tmp/dx9.sh","timeout":5,"onFailure":"block"}]}]}}
+  ```
+  `/tmp/dx9.sh` reads stdin, logs `session_id` and `agent_id` to a private file, checks `~/.cache/dx9/lease` for the session id, and prints `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"no lease"}}` when absent.
+- Steps: ask Claude to edit a file (denied); write the session id to the lease file (allowed); dispatch a subagent that edits (log shows `agent_id`; same decision); `chmod -x /tmp/dx9.sh` and edit again (blocked by `onFailure`).
+- Expected: as listed [r1 §C], [r1b §3].
+- Decides: DR-41's shape. If `onFailure: "block"` does not block, the guard denies on any error by printing a deny before doing work.
+- Cost: 20 minutes. Prerequisites: none.
+
+**DX-10. `SessionEnd` finishes in 1.5 s, and a `kill -9` leaves the lease to its TTL.**
+- Settings (probe project): a `SessionEnd` hook that sleeps 3 s then writes a file; then with `"timeout": 10`.
+- Steps: exit normally; observe the file; take a lease in a probe session; record the probe's pid from its `SessionStart` hook (`$PPID`, as in DX-3) and confirm with `ps -o comm=,args= -p <pid>` that it is the probe's `claude` process and not a working seat; `kill -9` that pid only; confirm `SessionEnd` did not run and the lease expires only at its TTL.
+- Expected: truncation at 1.5 s by default; up to 60 s with `timeout` [r1b §3]; no hook on `kill -9`.
+- Decides: `dio goodbye` is best-effort; TTL plus the process check (DR-108) is the real release path.
+- Cost: 10 minutes. Prerequisites: none.
+
+**DX-15. The token file is unreadable to the model and the sandbox from either account, in bypass permission mode too, the unsandboxed retry is ignored, and the proxy's `mask` feature works on 2.1.296.**
+- Settings (both accounts' user settings, since this is the real adapter configuration, after the probes above): a 0600 file `~/.claude/diogenes.token` and `~/.claude-team/diogenes.token`; in **each** account: `"permissions":{"deny":["Read(~/.claude/diogenes.token)","Read(~/.claude-team/diogenes.token)"]}`, `"sandbox":{"filesystem":{"denyRead":["~/.claude/diogenes.token","~/.claude-team/diogenes.token"]},"allowUnsandboxedCommands":false}`; then the proxy `mask` configuration from the sandboxing docs with `injectHosts` set to a probe host.
+- Steps: from a session on each account, ask Claude to Read both files (denied), to `cat` both in Bash (denied), to retry the `cat` with `dangerouslyDisableSandbox` (ignored), and to `curl` the probe host with the masked header (the server sees the real value, the transcript the sentinel). **Repeat the whole sequence in bypass permission mode**, which the author's seats use: no digest says whether `permissions.deny` holds there [c1 C-11].
+- Expected: deny, deny, ignored, masked [r5 §4], [r1 §6]. The `mask` behaviour on this version and the bypass-mode behaviour are UNVERIFIED.
+- Decides: DR-82's enforcement; whether `mask` replaces the token file for HTTP; whether bypass mode needs a different control.
+- Cost: 30 minutes. Prerequisites: the second account.
+
+**DX-16. `SO_PEERCRED` reports one uid for both accounts.**
+- Commands: a 15-line Python Unix socket server printing `SO_PEERCRED`, run outside Claude; connect from a hook (not Bash: M1) in a session on each account.
+- Expected: the same uid and gid; different pids.
+- Decides: confirms that 0.1 needs tokens, not peer credentials (DQ-6).
+- Cost: 10 minutes. Prerequisites: the second account for the second half.
+
+**DX-18. `claude agents --json --all` under each config dir, as a presence source.**
+- Commands: `claude agents --json --all` with and without `CLAUDE_CONFIG_DIR`; start a background session with `claude --bg`; leave it idle an hour; re-run.
+- Expected: per-config-dir listings; `status` and `waitingFor` fields; the idle background session's process stopped after about an hour unless pinned [r1b §5]; whether its socket stays bound is UNVERIFIED.
+- Decides: whether `dio who` polls this for background seats, whether Team workers can be background sessions (DQ-29), and whether seats must be pinned.
+- Cost: 10 minutes plus the wait. Prerequisites: none; the second account for the cross part.
+
+## Before cycle 0.2
+
+**DX-11. An `asyncRewake` hook wakes an idle session, re-arms on `Stop` without stacking, and its timeout ceiling.**
+- Settings (probe project):
+  ```json
+  {"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"/tmp/wake.sh","asyncRewake":true,"timeout":90}]}],
+            "Stop":[{"hooks":[{"type":"command","command":"/tmp/wake.sh","asyncRewake":true,"timeout":90}]}]}}
+  ```
+  `/tmp/wake.sh`: `sleep 45; echo "DIOGENES WAKE: 1 unread; run dio inbox" >&2; exit 2`. Then `"timeout": 3600` to find the ceiling, and a lockfile keyed by `session_id` in the script to prevent stacked listeners.
+- Expected: a new turn starts on its own after 45 s; one wake per message, not repeated (a recent changelog fix touched this path [r1b §3]); the ceiling is undocumented.
+- Decides: DR-25's first mechanism and the long-poll length `dio listen` may use.
+- Cost: 30 minutes. Prerequisites: DQ-7 permits the probe.
+
+**DX-12. A mod's `$.prompt.submit` wakes an idle session, and `$.http.fetch` reaches loopback.** (The usage half moved to DX-26, which has no wake and no DQ-7 dependency.)
+- Setup: a local-directory plugin with `register.js`: `$.clock.after(60000, () => $.prompt.submit({ text: 'DIOGENES MOD TEST' }))`, plus a handler that logs `$.http.fetch('http://127.0.0.1:8788/')` to a private file.
+- Expected: a new turn after 60 s with the mod named as sender [r1b §6]; loopback reach unknown [r1b E11, E12].
+- Decides: whether 0.2 builds the mod; whether `$.process.spawn(['dio','listen'])` is needed instead of fetch.
+- Cost: 30 minutes. Prerequisites: Node; DQ-7 permits.
+
+**DX-14. A cron task fires while idle, and what one fire costs.**
+- Steps: in a probe session, create a one-shot `CronCreate` 2 minutes out with the prompt `run dio inbox --count`; leave idle; read the status line's cost before and after.
+- Expected: it fires while idle [r1b §5]; the cost of one turn over the whole context.
+- Decides: whether cron is ever an acceptable poll, and at what interval. Not a dependency of any cycle.
+- Cost: 10 minutes. Prerequisites: DQ-7 permits.
+
+## Before cycle 0.3 and later
+
+**DX-19. Does Claude Code 2.1.296 read `AGENTS.md`?**
+- Steps: a probe project with only an `AGENTS.md` containing a canary sentence; start `claude`; ask what project instructions it has.
+- Decides: whether the `CLAUDE.md` shim is needed (DR-97) [r3 §4].
+- Cost: 5 minutes. Prerequisites: none.
+
+**DX-22. Antigravity: `injectSteps` feeds the model, MCP reaches the hub, hooks run with a sanitised environment, a sidecar runs unattended, and the sandbox's default and network policy.**
+- Setup: install `agy`; a probe workspace with `.agents/hooks.json` containing a `PreInvocation` command hook that prints `{"injectSteps":[{"userMessage":"DIOGENES PROBE: 1 unread; call diogenes/inbox"}]}` and logs `env` (redacted as in DX-3) to a private file; a `mcp_config.json` entry for a stub MCP server with `command` (stdio) and another with `serverUrl` on `127.0.0.1:8788`; `permissions.allow` with `mcp(diogenes/*)`; a `schedule` sidecar running `agentapi send-message <conversation_id> "ping"`.
+- Steps: ask the agent what Diogenes context it has (does the injected message appear, and mid-turn or at the next invocation?); call each MCP server; make the hook exit 1 (is the tool call blocked?); list the variables the hook saw; for the sidecar, **send at most 3 pings in total** (each is a turn against the AI Pro five-hour and weekly limits [r2 §2.8, §5]), one with the desktop app closed and only `agy` running, one with neither, then **disable the sidecar**; record whether the terminal sandbox is on or off by default ([r2 §2.2] and [r5 §3] disagree) and, with `enableTerminalSandbox` on, `curl` the stub from the shell tool.
+- Expected: documented for the hook events and the MCP config [r2 §2.3, §2.5]; the injection reaching the model is from secondary sources; the sidecar's unattended behaviour and the sandbox's network policy are UNVERIFIED [r2 §2.6, §2.2].
+- Decides: DQ-11 (hooks and MCP versus supervisor); whether a sidecar can wake Gemini; DR-94's config-from-file rule; which transport the 0.3 MCP entry uses.
+- Cost: 1 to 2 hours plus the install, and 3 Antigravity turns. Prerequisites: `agy` installed and signed in on the AI Pro plan; the stub MCP server from 0.1.
+
+**DX-23. Codex: sandbox reach, hook injection and the cap, `exec --output-schema`, and the credential path.**
+- Setup: install Codex CLI; `~/.codex/config.toml` with a stdio `[mcp_servers.diogenes]` and an HTTP one on `127.0.0.1:8788` using `bearer_token_env_var` [r3 §9]; `~/.codex/hooks.json` with a `UserPromptSubmit` command hook printing a canary line; review it with `/hooks`.
+- Steps: in a default `workspace-write` session, run `curl http://127.0.0.1:8788/` from the shell tool, call the HTTP MCP tool, call the stdio MCP tool; repeat with `[sandbox_workspace_write] network_access = true`; make the hook print 3,000 characters; from the shell tool run `env | grep -c <the variable name>` to see whether the bearer variable is visible to the agent's shell (the leak path in [r5 §4]); run `codex exec --json --output-schema audit.json "audit the README for unverified claims"` and validate the output against the schema.
+- Expected: shell and HTTP fail by default, stdio works [r3 §1]; truncation near 2,500 characters; a JSON result that validates; the variable's visibility unknown.
+- Decides: DR-95's transport and credential path; whether a headless `exec` runs hooks under trust review.
+- Cost: 1 hour plus the install. Prerequisites: Codex installed on a plan or API key (DQ-12).
+
+**DX-17 (revised). Redis 7.0.15 as an optional transport behind the hub: per-user ACL with key and channel patterns, an explicit deny of `FLUSHALL`, `off` leaving a live connection, and a Lua lock script under key patterns.** (Streams with consumer groups and keyspace notifications are **DONE (measured 2026-10-10)**: M5 created a group with `XGROUP CREATE … MKSTREAM`, read with `XREADGROUP … BLOCK`, saw pending go 1 → 0 after `XACK`, and received `xgroup-create` and `xadd` keyspace events on `PSUBSCRIBE __keyspace@0__:mbox:*`, all over loopback TCP within one sandboxed call.)
+- **Never touch the system instance.** The first draft's steps ran `ACL SETUSER` on the live `redis-server` and, if its prerequisite were skipped, a failed `--user` AUTH could fall through to the `default` user (`nopass ~* &* +@all` out of the box [r5 §2]) and `FLUSHALL` would wipe it [c1 C-5]. Start a throwaway server instead. A Unix socket is refused from sandboxed Bash (M1), so the throwaway server uses a loopback port **in the same call** (M2, M5) or runs from the author's own terminal outside Claude:
+  ```sh
+  redis-server --port 6390 --bind 127.0.0.1 --save '' --appendonly no --daemonize yes --pidfile /tmp/dx17.pid
+  alias r='redis-cli -p 6390'
+  r ACL SETUSER default off                       # the throwaway's default user, not the system's
+  r ACL SETUSER agt1 on '>pw1' resetkeys resetchannels -@all '%R~org:*' '%W~proj:p:team:t:*' '&proj:p:events' +get +set +xadd +xreadgroup +xack +eval -flushall -flushdb -swapdb
+  r --user agt1 --pass pw1 FLUSHALL
+  r --user agt1 --pass pw1 EVAL "return redis.call('set', KEYS[1], ARGV[1], 'NX')" 1 proj:p:team:t:lock me
+  r --user agt1 --pass pw1 EVAL "return redis.call('set', KEYS[1], ARGV[1], 'NX')" 1 org:lock me
+  r ACL SETUSER agt1 off     # while a --user agt1 connection stays open in the same call
+  r SHUTDOWN NOSAVE
+  ```
+  (Note that once `default` is off, the admin commands need `--user` of an admin account you create first, or run them before switching `default` off; the point of the first line is that the throwaway's `default` can be disabled without consequence.)
+- Expected: `FLUSHALL` refused; the first `EVAL` sets, the second is refused by the write pattern; the open connection keeps working after `off` [r5 §2]; the Lua-under-ACL interaction is UNVERIFIED.
+- Decides: whether Redis is a viable transport behind the 0.1 hub beside SQLite; the revocation procedure (`CLIENT KILL USER`). After M1 and M3 no agent process inside the sandbox would ever talk to Redis directly.
+- Cost: 20 minutes. Prerequisites: none; the throwaway server only.
+
+**DX-20. Channels: a development channel registers under both accounts and whether an event wakes an idle session (the round-1 E3).**
+- Steps: copy the `webhook.ts` from the channels reference; `claude --dangerously-load-development-channels server:webhook` under each config dir (the Team org needs `channelsEnabled` from its Owner); `curl -X POST localhost:8788 -d "ping"` from outside Claude (M3: not from sandboxed Bash) while idle; retry with `MCP_PROTOCOL_NEGOTIATION=legacy` if registration fails.
+- Expected: idle wake is never stated in the docs [r1b §2]; registration fails on a 2026-07-28 negotiation unless legacy is set.
+- Decides: whether channels become a 0.2+ option for the human-to-agent path. Low priority.
+- Cost: 45 minutes. Prerequisites: Bun or Node; DQ-4 answered for the Team side.
+
+**DX-21. A plugin monitor's output reaches an idle session (the round-1 E5).**
+- Setup: a local plugin with `monitors/monitors.json`: `[{"name":"hub","command":"sleep 60; echo HUB-PING","description":"probe"}]`.
+- Expected: unknown; the docs say output "reaches Claude as notifications" and never address idle [r1b §4].
+- Decides: a third wake option; not needed if DX-11 or DX-13 pass.
+- Cost: 15 minutes. Prerequisites: none.
+
+**DX-24. Posting into another session's socket from a script (research only, the round-1 E10).**
+- Steps: only if DX-4 passes and DQ-8 chooses the doorbell: `strace -f -e trace=connect,write,sendto -s 2000 -p <sender pid>` during a `SendMessage`, to read the wire format. Run from the author's terminal, never from a sandboxed shell.
+- Expected: an undocumented format that may change [r1b §1].
+- Decides: nothing in the plan; it would let the hub inject into a local seat push-style, at the cost of depending on an undocumented format. Recorded so nobody repeats the question.
+- Cost: 30 minutes. Prerequisites: DX-4 pass; DQ-8.
+
+**DX-25. A `-p` worker launched by the credits runner loads the Diogenes hooks and MCP server with `--settings`, `--mcp-config` and `--plugin-dir`, without `--bare`.** (Not needed for 0.0: the runner claims and reports on the job's behalf, DR-104. Needed only if a credits job should itself call `dio`.)
+- Steps: run one smoke job through `run.sh` with those flags and a `dio register` in its `SessionStart` hook; check `dio who` for the worker and the job's `system/init` event for the MCP server. Note that a `-p` launched from a seat's Bash runs inside that seat's sandbox (observed), so the worker's own `dio` calls would go through the spool.
+- Expected: documented as the way to load them [r1 §4]; `-p` binds an inbox socket and kills async hooks at teardown.
+- Decides: whether API-credit jobs can call Diogenes themselves in 0.2.
+- Cost: 15 minutes and one smoke job's credits. Prerequisites: 0.1's MCP server.
