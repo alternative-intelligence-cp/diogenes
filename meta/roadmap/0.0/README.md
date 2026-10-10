@@ -1,5 +1,10 @@
 # Cycle 0.0 — the P0 slice: tasks, messages, leases, presence and meters through one file-backed `dio`
 
+> **Verification status: VERIFIED PASS, 2026-10-10** (`../../research/done/dio-v3-reverify-0.0-plan-2026-10-10.md`, Opus 5.5).
+> - The plan was verified (V-1 … V-29), amended, re-verified (R-1 … R-10), amended again, and passed. `VERIFY-2026-10-10.md` has each finding's fate.
+> - **The executor fixes R-11 … R-19 with dated notes as it works.** All nine are minor, with no safety or spending risk. The nearest to major is R-11, a missing space in the credits wrapper, which fails safe.
+> - It plans on the open questions' recommendations (the assumptions table below). The author has not yet reviewed it.
+
 Planned 2026-10-10 from `meta/roadmap/ROADMAP.md` (cycle 0.0), `DESIGN.md` §10 and §11, `REQUIREMENTS.md`'s ★ set, `OPEN_QUESTIONS.md`'s recommendations, `EXPERIMENTS.md`, and the measurements M1–M5 in `meta/research/done/prompts/diogenes-firsthand-2026-10-10.md`, which outrank every document. **Nothing in this cycle was rehearsed**: the planner had no shell. Every "Expected" below is the plan's prediction; the executor records what it saw and stops on a difference it cannot explain. Amended 2026-10-10 against the verifier's report (`VERIFY-2026-10-10.md` lists every finding and what was done), and again the same day against the re-verifier's (R-1 … R-10, in the same file's second section).
 
 ## 1. Goal
