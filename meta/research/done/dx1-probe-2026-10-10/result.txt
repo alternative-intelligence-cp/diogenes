@@ -1,0 +1,12 @@
+A ns: mnt:[4026535510] pid:[4026535512] net:[4026535367] 
+B ns: mnt:[4026535642] pid:[4026535643] net:[4026535516] 
+R ns: mnt:[4026535706] pid:[4026535707] net:[4026535647] 
+result ('A', 'contested', 7860, 10, 0)
+result ('B', 'contested', 8197, 27, 0)
+result ('A', 'free', 1789, 1279, 0)
+result ('B', 'free', 6696, 2411, 0)
+fence 3727 | sum of all wins 3727 | fence == wins: True
+referee resets 36 | rounds with a winner 37 | rounds with MORE than one winner: 0 []
+integrity_check: ok | errors: 0
+
+[exited with code 0]

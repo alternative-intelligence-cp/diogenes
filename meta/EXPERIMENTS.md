@@ -9,6 +9,16 @@ Drafted 2026-10-10, revised the same day. Feasibility probes, ordered by what th
 ## Before cycle 0.0
 
 **DX-1 (revised). Two processes in different namespaces can take one SQLite lease by compare-and-set without error, with exactly one winner per contested round.**
+- **RESULT, the sandbox-to-sandbox leg: PASS (measured 2026-10-10 15:31 by `nitpick-libs_18`; files in `research/done/dx1-probe-2026-10-10/`).**
+  - **Setup:** three processes, each in its own sandboxed Bash call, with distinct mount, PID and network namespaces: writers A and B, and a referee that freed the lease twice a second. They shared one WAL-mode file under `$TMPDIR`, on SQLite 3.45.1 through Python's `sqlite3`, with `BEGIN IMMEDIATE` and `busy_timeout` 5000.
+  - **Free-running phase** (1 ms TTL): A made 1 789 takes and won 1 279; B made 6 696 and won 2 411.
+  - **Contested phase** (60 s TTL): A won 10 of 7 860 attempts and B 27 of 8 197, over 37 lease rounds (36 resets plus the initial one).
+  - **Result:**
+    - **No round had more than one winner;**
+    - the fence (3 727) equals the sum of all wins, so no update was lost or doubled;
+    - 0 errors and 0 busy timeouts;
+    - `PRAGMA integrity_check` returned `ok`.
+  - **Still open:** the host-to-sandbox leg, with one writer outside any sandbox, which the commands below run from the author's terminal. It rests on the same kernel locks, over a bind mount of the same inode.
 - Hypothesis: SQLite 3.45.1 in WAL mode serialises `BEGIN IMMEDIATE` writers across processes, and the same holds between a writer on the host and a writer inside a sandboxed Bash call, which M3 shows runs in its own namespaces, on a directory in `allowWrite`.
 - Commands (outside the sandbox, in the author's terminal):
   ```sh

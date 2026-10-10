@@ -80,7 +80,7 @@ If you say nothing, the plan uses its recommendation. Each answer sits in one pl
 
 ## 7. What is uncertain
 
-- **Can a sandboxed session and a normal process safely share one database file?** If not, a small background server moves into 0.0, adding about 2 seat-days. **DX-1** settles it.
+- **Can a sandboxed session and a normal process safely share one database file?** If not, a small background server moves into 0.0, adding about 2 seat-days. **DX-1** settles it. *Half measured, 2026-10-10:* writers in separate sandboxes shared one file with exactly one lock winner per round and no errors. A writer outside the sandbox is the leg left.
 - **Does the "N unread" line from a hook reach the model,** both at a prompt and in the middle of a turn? If not, a clumsier fallback is used. **DX-2** settles it.
 - **Does a session's own background wait wake it every time, and how long can it live?** Waking has been seen once and the time limit was never tested. This decides whether idle workers can pick up tasks without you. **DX-13** settles it.
 - **How much room does the Team seat have left?** It likely reports no usage limits, so its usage may stay a rough estimate. **DX-5** and **DX-26** settle it, on the first Team session.
