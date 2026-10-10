@@ -313,7 +313,7 @@ Adopted from [r7] with these decisions:
 | From | What | How it appears here | Source |
 |---|---|---|---|
 | Claude Code cross-session messaging | the trust wrapper, the "cannot approve anything" rule, idle notices | the data envelope; `notify_when_idle` stays available on this machine (its behaviour across config dirs is untested, DX-4) | [r6 §5], [r1 §2.1] |
-| MCP Agent Mail (Rust) | advisory leases with TTL, the pre-commit guard, git-plus-SQLite audit, a human overseer inbox | leases with TTL and fence; a `pre-commit` hook option in 0.5; export to files; the author's terminal identity sends like any other, with no `--as` flag | [r6 §2] |
+| MCP Agent Mail (Rust): **ideas only**, per [r9] (no task path, no file transport, self-asserted names, a licence rider not AGPL-combinable by its reading) | advisory leases with TTL, the pre-commit guard, git-plus-SQLite audit, a human overseer inbox | leases with TTL and fence; a `pre-commit` hook option in 0.5; export to files; the author's terminal identity sends like any other, with no `--as` flag | [r6 §2] |
 | Beads | atomic `--claim`, hash ids, a `ready` query | `dio task claim` and `dio claim` are atomic; ids are not guessable; `dio board --ready` in 0.5 | [r6 §2] |
 | Iris fork, Gas Town | a durable identity that owns the mailbox, with ephemeral sessions | role versus seat versus session; role moved by assignment | [r6 §2] |
 | agent-loom | claim reminders at 2 h and 8 h, one-time release tokens, work leases | lease and task reminders as alert events in 0.2 | [r6 §2] |

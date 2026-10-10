@@ -23,7 +23,12 @@ Drafted 2026-10-10, revised the same day. Each question is one the author must d
 
 **DQ-16. Build the small core, or trial MCP Agent Mail (Rust) first?**
 - Options: build (recommended by [r6 §6]; fits the layers, the task path and the identity model; a few hundred lines); trial Agent Mail for an afternoon (45 tools to teach, a licence rider unread, self-asserted identity, no layers, no task path, and its MCP transport would not reach a sandboxed shell).
-- Recommendation: build; keep the trial as the fallback if 0.0 slips past a week.
+- Recommendation: **build** (confirmed by [r9], 2026-10-10). If 0.0 slips, the fallback is the smallest `dio` subset, not an MCP Agent Mail trial: `send`, `inbox`, `ack` and `task post|claim|report|verify` on one SQLite file, plus the existing file inboxes. [r9 §7]'s reasons for dropping the trial:
+  - Agent Mail covers none of the task path (DR-99 … DR-109);
+  - it has no file transport, so sandboxed shells cannot reach it (M1, M3);
+  - its names are self-asserted, which conflicts with DR-106 and DR-107;
+  - its store has open corruption issues;
+  - its licence rider names Anthropic, and by [r9]'s reading cannot be combined with AGPL. **The author should read that `LICENSE` himself before any trial ([r9] X0).**
 - Blocks: nothing today.
 
 **DQ-23. Should the lease be enforced (a `PreToolUse` deny) or only recorded in the first cycles?**
