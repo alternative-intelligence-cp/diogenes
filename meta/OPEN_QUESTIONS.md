@@ -87,7 +87,8 @@ Drafted 2026-10-10, revised the same day. Each question is one the author must d
 
 **DQ-8. If DX-4 shows native `SendMessage` crosses accounts, is it used?**
 - Options: not at all (every message through Diogenes; simplest audit); as a doorbell for pointer-only nudges ("check dio"), mirrored into the store (lower latency, same-mode sessions only, held messages when modes differ [r1b §1]); as the only path (rejected: no durable record, no task state, result means queued).
-- Recommendation: the doorbell only, with `crossSessionInbound: accept` set explicitly on both accounts, and only after DQ-5's first two answers.
+- **DX-4 PASSED on 2026-10-12, both ways, with no approval step in bypass mode,** and DQ-5's first two questions are answered. So this is now a live choice.
+- Recommendation, revised: **use native `SendMessage` now for Claude↔Claude conversation and nudges** (briefs, questions, "task at X, commit Y"). Keep **tasks, claims, reports, leases and the audit record in Diogenes** (or in git until 0.0 exists), because native messages leave no durable record and no task state, and subagents cannot receive them. Set `crossSessionInbound: accept` explicitly on both accounts. Gemini and GPT still need Diogenes.
 - Blocks: nothing in 0.0; the day-zero practice uses it if available.
 
 **DQ-17. Set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=0` in both accounts' settings?**

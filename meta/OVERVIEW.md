@@ -12,7 +12,7 @@ The seat is hoped for by **Wednesday 2026-10-14 20:00**, which may be before any
 
 1. **Sign in:** `mkdir -p ~/.claude-team && CLAUDE_CONFIG_DIR=~/.claude-team claude`. (A "config dir" is the folder that holds one account's login and settings.)
 2. **Look at `/status` and `/config`.** Note whether you are the organization's Owner and whether any hooks are blocked. This answers DQ-4 (who controls the Team settings).
-3. **Optional, 15 minutes:** check whether `SendMessage` works between the two accounts (DX-4). If it does, use it only for short nudges such as "task file at X, commit Y". Nothing depends on it.
+3. **Done 2026-10-12: `SendMessage` works between the two accounts, both ways** (DX-4), with no approval step when both sessions are in bypass mode. Claude sessions on either account can talk directly. Tasks, claims and reports still go through git (and later Diogenes), because native messages leave no record.
 4. **Messages are files:** one file per message in `META/NITPICK/messages/{max-inbox,team-inbox}/`. This is the same convention the Gemini inbox already uses.
 5. **Tasks are committed Markdown files** in `meta/tasks/`, each with acceptance commands. The worker re-reads the task from git. It reports by making a commit, and the orchestrator re-runs the acceptance commands before accepting the work.
 6. **An idle worker watches its inbox** with a background `until … sleep 60` loop that it starts itself. This has been seen to wake a session once.
@@ -60,7 +60,7 @@ If you say nothing, the plan uses its recommendation. Each answer sits in one pl
 ## 5. What you can run or check yourself, if you want to
 
 - `/status` and `/config` on the first Team session (DQ-4, 5 minutes).
-- DX-4, the cross-account `SendMessage` test (15 minutes, optional).
+- ~~DX-4, the cross-account `SendMessage` test~~: passed 2026-10-12.
 - Whether your Max status-line script writes `~/.claude/usage-latest.json` (one look).
 - Start the DX-13 wait: leave a test session idle, then trigger it after 10 minutes, after 2 hours, and overnight. It costs your waiting time, not effort.
 - The pre-build experiments in `roadmap/0.0/0.0.0.0.md`: you run prepared scripts by name and type lines into test sessions. No SQL.

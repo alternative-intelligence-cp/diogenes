@@ -141,6 +141,12 @@ Drafted 2026-10-10, revised the same day. Feasibility probes, ordered by what th
 - Cost: 30 minutes. Prerequisites: Node; the second account; the Team org not setting `allowManagedModsOnly` (DQ-4).
 
 **DX-4. Native `SendMessage` across two config dirs (the round-1 E1).**
+- **RESULT: PASS, BOTH WAYS (measured 2026-10-12 05:06 by `nitpick-libs_18`, at the author's request).**
+  - **Setup.** The Team account's session, "Team workspace setup and configuration" `[a4a10f]`, is a Claude Desktop session working in `/home/randy/Team`. It appeared in the Max-account seat's `ListAgents` as "another Claude session on this machine".
+  - **Max → Team:** a test message was sent to it by name and ref, and delivered to its inbox.
+  - **Team → Max:** it replied by `SendMessage`. The reply arrived here as `<cross-session-message from="uds:/run/user/1000/cc-socks/242635.sock" from-session="local_c64ba531-…" from-mode="bypass">`. A longer follow-up message also went through.
+  - **Approval:** the receiving side reported the message *"was delivered straight into my conversation with no approval step on my end"*. Both sessions ran in bypass mode. A session in a different mode would hold messages for its user's approval [r1b §1].
+  - **Caveat:** in this setup the two accounts share one `~/.claude` (the Team seat's own account). Whether separate `CLAUDE_CONFIG_DIR`s would also see each other is not tested. One socket directory per OS user suggests they would.
 - Commands:
   ```sh
   # terminal 1 (the Max side: leave CLAUDE_CONFIG_DIR unset, so nothing about the default login changes)
