@@ -1,0 +1,1 @@
+2026-10-15T18:42:46Z S1 sandbox ns_pid=pid:[4026535439] ns_net=net:[4026534885] ns_mnt=mnt:[4026535433] shell_pid=2 ppid=1 ppid_comm=3 netdevs=lo,
