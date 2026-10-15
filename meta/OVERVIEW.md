@@ -1,5 +1,7 @@
 # Diogenes: one-page overview
 
+> **The plan the build follows is [`roadmap/0.0/MIN.md`](roadmap/0.0/MIN.md),** Diogenes 0.0-min, approved by the author on 2026-10-15. This page was written on 2026-10-10 for the full P0 plan; where the two differ, `MIN.md` governs.
+
 Written 2026-10-10 for your review next week. The plan behind it is about 60 files. This page tells you what matters, what is waiting on you, and what you can skip.
 
 ## 1. What Diogenes is
