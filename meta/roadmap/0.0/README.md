@@ -1,5 +1,7 @@
 # Cycle 0.0 — the P0 slice: tasks, messages, leases, presence and meters through one file-backed `dio`
 
+> **The plan the build follows: [`MIN.md`](MIN.md), Diogenes 0.0-min, approved by the author on 2026-10-15 at 08:22:53.** This README and the other files in this folder, `MIN.md` aside, are the full P0 plan of 2026-10-10. They stay where they are, as the source for what 0.0-min leaves to 0.1 (`MIN.md`, "Left to 0.1, deliberately"); where they differ from `MIN.md`, `MIN.md` governs.
+
 > **Verification status: VERIFIED PASS, 2026-10-10** (`../../research/done/dio-v3-reverify-0.0-plan-2026-10-10.md`, Opus 5.5).
 > - The plan was verified (V-1 … V-29), amended, re-verified (R-1 … R-10), amended again, and passed. `VERIFY-2026-10-10.md` has each finding's fate.
 > - **The executor fixes R-11 … R-19 with dated notes as it works.** All nine are minor, with no safety or spending risk. The nearest to major is R-11, a missing space in the credits wrapper, which fails safe.

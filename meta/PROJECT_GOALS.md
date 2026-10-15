@@ -24,6 +24,7 @@ It is layered the way the author described: an **organization** layer (rules and
 
 - **Not a second source of truth for code or plans.** Git and GitHub keep that role. Diogenes is a lookup and coordination layer beside them. "The brief is the channel; the tracked document is the storage" stays the rule [r8 §3.2]. A task's specification is a tracked file; the task record points at it.
 - **Not an orchestrator.** It does not decide what to dispatch or to whom, does not choose models, and does not wake sessions on its own. It carries tasks and their state between the orchestrator and any executor, and records the result. The author calls rotations and wakes seats [r8 §3.8]; a seat may start its own wait on mail addressed to it (DQ-7). devTeam and the orchestrate skill stay the orchestrators; Diogenes gives them a shared store and the task path.
+  - **Amended 2026-10-15 by cycle 0.0-min's decision 2, approved by the author:** two wakes are permitted in 0.0, the seat's own `dio watch` and a native message from a peer session that `dio who` lists; Diogenes itself still wakes nothing (`roadmap/0.0/MIN.md`).
 - **Not a harness.** It does not run models. Ruflo and Gas Town are harnesses and are not adopted [r6 §5].
 - **Not a judge.** It records claims and verifications. The "honest man" rule is that every claim is verified before it is relayed; Diogenes makes that cheap to record, not optional. A task's `verified` state needs a verifier who is not the reporter.
 - **Not an identity authority in v0.** Both Claude accounts run as the same Linux user, so no kernel fact tells them apart [r5 §1]. Identity is a server-issued token from cycle 0.1, and in 0.0 a recorded registration plus the socket path the harness exports (DR-107). The nonce check (a nonce in one transcript) guards against confusion between honest sessions; it does not stop a hostile same-uid process [c1 C-9].
@@ -63,6 +64,8 @@ Priorities follow the author's words: the Team seat is hoped for by the weekly r
 
 **Goal.** The orchestrator on the Max account hands self-contained tasks to sessions on the Team seat and to API-credit jobs through Diogenes, knows each was received, gets a report back that it verifies, and sees each account's remaining room before routing, with no relay by the author and no dependence on `SendMessage` crossing accounts.
 
+**Amended 2026-10-15 by cycle 0.0-min's decision 1(c), approved by the author:** "no dependence on `SendMessage` crossing accounts" has the inbox as its proof. `SendMessage` is the default path; the file inbox is the required fallback, proved in M4 as one exchange each way with `SendMessage` denied on both sides (`roadmap/0.0/MIN.md`).
+
 **Why the shape is this.** The author keeps Fable's normal half of the Max account for the compiler; the other half is reserved for the library orchestrator. The Team seat is, by his estimate, roughly a quarter of a Max's usage, so it runs Opus or smaller on well-defined tasks and rotates often. Delegation with good tooling is what "stretches that 50 % out a ways" (the follow-up).
 
 **Success criteria (measured):**
@@ -70,6 +73,7 @@ Priorities follow the author's words: the Team seat is hoped for by the weekly r
 1. **The task path.** 10 tasks posted by the Max orchestrator, 5 worked by a Team-seat session and 5 by credits jobs, each claimed (the acknowledgement), reported, and verified by an identity other than the reporter, with zero hand relays.
 2. **Messages.** A message sent from a seat on account A is stored, injected as an unread notice into a seat on account B at its next turn, and acknowledged by B with one call, with the sender able to query the state. Target: 10 of 10 messages, both directions, in a scripted test.
 3. **Waiting without the author.** An idle Team worker that has started `dio wait` picks up a posted task within the wait's poll interval, and an idle orchestrator that has started one picks up a report the same way, in 10 of 10 trials; a seat with no `dio wait` is never woken.
+   - **Amended 2026-10-15 by cycle 0.0-min's decision 2, approved by the author:** 5 of 5 file wakes (M4) and 5 of 5 native wakes (M2); "never woken" narrows to "never by a file without a watch". The full count is 0.1 (`roadmap/0.0/MIN.md`).
 4. **The lock.** The workbench lock is taken, held and released only through Diogenes, and the four acceptance tests derived from hazards 1, 2, 5 and 13 pass [r8 §What this means].
 5. **Presence.** `dio who` shows both accounts' sessions with role, name, session id, account and state, shows `live-idle` for a session whose process is alive but silent, and `unknown` only when the process check is impossible.
 6. **Room per account.** Each account's five-hour and seven-day meters, the Fable line, and each seat's context percentage are readable by name from the other account; the Team account's room is shown as a dated `estimate` with its method until a measured source exists (DX-26), and `unknown` where no source exists at all.
@@ -112,6 +116,7 @@ A structured handoff with the two-signal close (criterion 5 of the first draft) 
 ## 6. Non-goals
 
 - Waking sessions on a schedule the author did not set. He wakes seats by hand for now [r8 R-68]. A wait that a seat starts for itself, on mail or tasks addressed to it, is the seat's own choice, visible in `dio who`, and is the only wake in cycle 0.0 (DQ-7).
+  - **Amended 2026-10-15 by cycle 0.0-min's decision 2, approved by the author:** the seat's own `dio watch` and a native message from a peer session that `dio who` lists are the two permitted wakes in 0.0; Diogenes itself still wakes nothing, and cron, `asyncRewake` and mods stay out until 0.2 (`roadmap/0.0/MIN.md`).
 - Replacing git, GitHub, worktrees or the per-project checkouts.
 - A general chat interface, voice, or a mobile app. Alerts to the author's phone go through what already exists (`PushNotification`, later ntfy) [r6 §3].
 - Running the hub on anything but this machine until P3.

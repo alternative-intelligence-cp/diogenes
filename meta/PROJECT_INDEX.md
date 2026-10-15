@@ -1,6 +1,8 @@
 # Diogenes: project index
 
-> **Start with [`OVERVIEW.md`](OVERVIEW.md):** one page on what matters, what is waiting on you, and what you can skip (written 2026-10-10).
+> **Start with [`roadmap/0.0/MIN.md`](roadmap/0.0/MIN.md):** Diogenes 0.0-min, the plan the build follows for cycle 0.0, approved by the author on 2026-10-15. Where this index or `OVERVIEW.md` differs from it, `MIN.md` governs.
+>
+> **Then [`OVERVIEW.md`](OVERVIEW.md):** one page on what matters, what is waiting on you, and what you can skip (written 2026-10-10, for the full P0 plan).
 
 A cheat sheet: where everything is, in this repository and outside it. Paths outside the repository are as recorded on 2026-10-10 and should be re-checked when they are used; the Gemini inbox path is as the shared context file gives it.
 
@@ -15,6 +17,7 @@ A cheat sheet: where everything is, in this repository and outside it. Paths out
 | Architecture (two transports), data model (tasks in §2.3), delivery modes, backend choice, access model, threat model, prior art, the P0 slice | `meta/DESIGN.md` |
 | Day zero, cycles 0.0 to 0.8 with gates, dependencies and sizes | `meta/roadmap/ROADMAP.md` |
 | Subcycle plans, when written | `meta/roadmap/<cycle>/`; finished cycles in `meta/roadmap/done/` |
+| Task files, one per task, committed on `main` by `diogenes_0` (from cycle 0.0-min's gate M3), and their convention | `meta/tasks/`, `meta/tasks/README.md` |
 | Decisions for the author, DQ-1 to DQ-29 (DQ-14 withdrawn) | `meta/OPEN_QUESTIONS.md` |
 | Feasibility probes, DX-1 to DX-26, ordered by what they unblock, with the measured ones marked DONE | `meta/EXPERIMENTS.md` |
 | The creative parking lot | `meta/IDEAS.md` |
