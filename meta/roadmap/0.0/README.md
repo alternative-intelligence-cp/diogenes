@@ -109,6 +109,8 @@ Moved to 0.1, in this order, each a self-contained step the later subcycle names
 | A settings-file `env` block sets `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=0` for the session | Claude Code settings docs as read by [r1 §8]; the key's exact behaviour on 2.1.296 unmeasured | 0.0.3.0 step 6 | export it in the shell profile instead |
 | An `allowWrite` path is bound only if it exists when the session starts | reading of the sandbox docs; unmeasured | DX-1, 0.0.0.0 (the probe db directory is created before `probe-a` opens) | create the directory first, always (the plan already does) |
 
+- **Note 2026-10-15, `diogenes_0`, on the `/proc/<pid>` row above:** its reason, "(the sandbox shares the host's PID namespace)", is false. DX-3's probe-t ran its sandboxed Bash in `pid:[4026535439]`, and the host is in `pid:[4026531836]` (`meta/research/done/dx3-probe-2026-10-15/DX3-team-probe-t.txt`, and `D2b-controls.txt` line 5 there). None of DX-1's three processes on 2026-10-10 was in the host's PID namespace either (`meta/research/done/dx1-probe-2026-10-10/result.txt` lines 1–3). Whether the host's `/proc/<pid>` is visible from sandboxed Bash is still unmeasured: S1's line 7, which reads it, did not run (`meta/EXPERIMENTS.md`, DX-3's RESULT). The row is left as written, and its fallback is unchanged. Found by the Team seat's D2b and confirmed by D2bv.
+
 ## 9. How the cycle closes
 
 1. Every subcycle file's title reads `DONE (<date>)` with an execution record, and `CHECKLIST.md` has every box ticked with the verifier's initials and the command's output path.

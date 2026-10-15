@@ -5,10 +5,10 @@ Job: B1, the run of Diogenes 0.0-min build step 2 (DX-3 narrowed, with DX-18's l
 What the readings mean for DX-3 is in `meta/EXPERIMENTS.md`, in the **RESULT (partial, 2026-10-15)** bullet under DX-3. This folder holds the files that bullet rests on.
 
 **Limits:**
-- **The run stopped at S1** (`D2b-controls.txt` line 13). The only probe reading is probe-t's S1 line 1. S1's lines 2–10, steps S2–S6, U2 and U3, the control readings C1 to C3, and DX-18 never ran.
+- **The run stopped at S1** (`D2b-controls.txt` line 13). The only probe reading is probe-t's S1 line 1. S1's lines 2–10, steps S2–S6, U2 and U3, the control readings C1 after each "done S1", C2 and C3, and DX-18 never ran. C1-pre's readings (lines 10–11) did run.
 - **probe-m and the unnamed probe wrote nothing.** C4 found nothing new in the Max probe directory (line 16), and in the Team one no new file but the two results files filed here (line 15). So there is no `DX3-max-probe-m.txt` and no `DX3-team-probe-u.txt`.
 - **Some lines are the manager's record of what others said or did:** the author's words (lines 9 and 12), probe-t's refusal (line 13), the probes' transcripts read afterwards (lines 13, 18 and 19), and `diogenes_0`'s report (line 25). The transcripts they cite (`aa013dc4…`, `edcd3abf…`, `bcc7fb0e…`) are not filed here.
-- **One slip in line 13 stays in place,** because the file is filed byte for byte. Its "14:42:46Z" can't be UTC: 14:42:46 UTC is 10:42:46 EDT, before probe-t started at 14:36:20 EDT (line 10). It matches probe-t's own stamp, `18:42:46Z`, read as EDT.
+- **One slip in line 13 stays in place,** because the file is filed byte for byte. Its "14:42:46Z" can't be UTC: 14:42:46 UTC is 10:42:46 EDT, before probe-t started at 14:36:20 EDT (line 10). It is probe-t's own stamp, `18:42:46Z`, given in EDT (18:42:46Z is 14:42:46 EDT) but still marked `Z`.
 - **Nothing was redacted.** No line of the three filed files holds the value of anything whose name contains `TOKEN`, `KEY` or `SECRET`. In those files the words occur only in the step's own rules and its `jq` key list in `s1-as-sent.txt`, and in line 25's "no sandbox key" (D2b's case-insensitive `grep` of the three files, 17:21:36).
 
 ## The files
@@ -60,3 +60,4 @@ Every line of the two results files starts with the UTC time that `date -u +%FT%
 
 - Filed by `D2b-diogenes-dx3-results` (`general-purpose`, Claude Opus 5.5). `Ailp-team_3`, the Team seat's manager since 15:01, dispatched it at 17:09:04 (`MANAGER-LOG.md`). It works on branch `team/diogenes-0.0-dx3-results`, and its brief is `/home/randy/Team/META/diogenes/briefs/D2b-diogenes-dx3-results.txt`.
 - **Sources:** the two results files in `/home/randy/Team/PROBES/dio-probe/results/`; the run sheet; `MANAGER-LOG.md`'s 2026-10-15 entries from 14:35 to 14:54, the 15:01:19 entry, and the entries from 16:59; and the reports `D2a-diogenes-dx3-prep.md`, `D2c-diogenes-a2-deny-rules.md` and `D1v-diogenes-0.0-min-plan-verify.md` in `/home/randy/Team/REPORTS/`.
+- **Two wording fixes at the merge:** `diogenes_0` reworded the "C1 to C3" limit and the last sentence on line 13's slip (D2bv's findings 2 and 5) in the records commit after the merge, 2026-10-15.
