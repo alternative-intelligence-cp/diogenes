@@ -1,6 +1,6 @@
 # Diogenes: open questions for the author
 
-Drafted 2026-10-10, revised the same day. Each question is one the author must decide, or must ask someone else. Each gives why it matters, the options with their trade-offs, a recommendation with its reason, and what it blocks. Policy questions are listed as questions, without interpreting any terms. Identifiers are stable; DQ-14 is withdrawn, DQ-27 to DQ-29 are appended.
+Drafted 2026-10-10, revised the same day. Each question is one the author must decide, or must ask someone else. Each gives why it matters, the options with their trade-offs, a recommendation with its reason, and what it blocks. Policy questions are listed as questions, without interpreting any terms. Identifiers are stable; DQ-14 is withdrawn, DQ-27 to DQ-30 are appended (DQ-30 on 2026-10-15). Each question that cycle 0.0-min decided or deferred on 2026-10-15 carries a dated note (`roadmap/0.0/MIN.md`, decisions 1–6).
 
 ## Architecture and build
 
@@ -13,12 +13,14 @@ Drafted 2026-10-10, revised the same day. Each question is one the author must d
 **DQ-2. Which language for `dio` and the hub?**
 - Options: Python 3.12 (fast to write, stdlib `sqlite3`, hooks pay interpreter start on every prompt; measure it in DX-2); Go (one static binary per account, better for a long-running socket server and spool ingester, a second language); Rust (the author's ecosystem, slowest first slice).
 - Recommendation: Python for 0.0 and 0.1; re-do the daemon in Go only if hook latency exceeds the 300 ms gate or a static binary matters.
+- **Decided 2026-10-15 by cycle 0.0-min's decision 6 (the queued batch), which the author approved as recommended:** Python 3, standard library only, plus `sh` for the watch loop; 0.0-min installs no hook (`roadmap/0.0/MIN.md`).
 - Blocks: 0.0.
 
 **DQ-3. Where do the store and the spool live, and who owns them?**
 - Why it matters: they must survive either account's config dir being replaced [r8 open questions], be writable from both accounts' sandboxes (the spool from 0.1, the store in 0.0 only), and not be a project checkout.
 - Options: `~/.local/share/diogenes/` (outside both config dirs, one `allowWrite` entry per account; from 0.1 the store moves out of `allowWrite` and only `spool/` stays in); inside the diogenes repository's `.internal/shared/` (gitignored, but tied to one checkout); a path under one config dir (lost if that dir is replaced).
 - Recommendation: `~/.local/share/diogenes/` with `store/` and `spool/` as siblings, with a nightly `dio export` of messages, tasks and audit into a tracked file in the diogenes repository for durability.
+- **Decided 2026-10-15 by cycle 0.0-min's decision 6 (the queued batch), which the author approved as recommended:** `~/.local/share/diogenes/`. In 0.0-min it holds no store: it holds `inbox/`, `cache/` and `roster/`, the shared write zone that decision 1's exception approved. The author created it on 2026-10-15, mode 700 (`roadmap/0.0/MIN.md`, steps 4 and 6).
 - Blocks: 0.0 setup.
 
 **DQ-16. Build the small core, or trial MCP Agent Mail (Rust) first?**
@@ -34,6 +36,7 @@ Drafted 2026-10-10, revised the same day. Each question is one the author must d
 **DQ-23. Should the lease be enforced (a `PreToolUse` deny) or only recorded in the first cycles?**
 - Options: record only in 0.0 (seats obey by discipline, as today); enforce from 0.1 with fail-closed behaviour (a hub outage then blocks writes in governed trees).
 - Recommendation: record in 0.0, enforce in 0.1, because enforcement without the hub's availability guarantees would stop work on every restart.
+- **Deferred 2026-10-15 by cycle 0.0-min's decision 6 (the queued batch), which the author approved as recommended:** 0.0-min builds no lease (DQ-30), so this waits for 0.1.
 - Blocks: 0.1 scope.
 
 **DQ-24. Retention and export cadence for messages, tasks and audit rows.**
@@ -54,13 +57,22 @@ Drafted 2026-10-10, revised the same day. Each question is one the author must d
 - Why it matters: the Team room is an estimate until DX-26 (DR-109); refusing on `unknown` would block delegation on day one, while never refusing lets a worker run into the Team limit mid-task.
 - Options: refuse below a floor the author sets per account (recommended; `estimate` and `unknown` are printed and recorded on the task, and only a measured or estimated figure below the floor refuses); never refuse, only print; ask the author on every `unknown` (a recurring human step with no safety category).
 - Recommendation: a floor of 15 % room per account, overridable with `--force`, which is recorded.
+- **Deferred 2026-10-15 by cycle 0.0-min's decisions 5 and 6, which the author approved as recommended:** 0.0-min has no `dio task post` to refuse a post. The task template records `room-at-post` as `measured`, `estimate` or `unknown`, and the floor moves to 0.1 with DR-103 (`roadmap/0.0/MIN.md`).
 - Blocks: DR-103's default.
 
 **DQ-29. Are Team worker sessions interactive terminals the author opens, or background sessions (`claude --bg`)?**
 - Why it matters: an idle background session's process may be stopped after about an hour unless pinned [r1b §5], which would end its `dio wait`; an interactive terminal stays alive but costs the author a window per worker. Background sessions are listed by `claude agents --json` (DX-18), which could feed presence.
 - Options: interactive terminals, rotated by hand (matches the author's current practice); background sessions pinned with `Ctrl+T`; background sessions unpinned, with the orchestrator treating `stopped` as "re-post the task".
 - Recommendation: interactive terminals for day zero and 0.0; try pinned background sessions in 0.2 when DX-18's result is in.
+- **Decided 2026-10-15 by cycle 0.0-min's decision 6 (the queued batch), which the author approved as recommended:** interactive terminals the author opens, as gate M1's probe starts assume (`roadmap/0.0/MIN.md`).
 - Blocks: the worker half of the 0.0 gate.
+
+**DQ-30. Is deferring the fenced lock acceptable while the branch-per-task rule holds?**
+- Why it matters: cycle 0.0-min builds no store, so the fenced lease (DR-30 to DR-36, DR-39) and P0 criterion 4's four hazard tests cannot land in 0.0. Until they do, only a rule keeps two writers out of one tree.
+- Options: build the lease in 0.0, which needs the store 0.0-min dropped; or defer it to 0.1 and make branch per task, with one merging seat per repository, binding.
+- Recommendation: yes, defer, with the rule written into `USING.md` as binding (`/home/randy/Workspace/MANAGEMENT/credits/out/dio-rescope-0.0-2026-10-15.md`, filed 2026-10-15).
+- **Decided 2026-10-15 by cycle 0.0-min's decision 6 (the queued batch), which the author approved as recommended:** deferred to 0.1. `USING.md` rule 4 (branch per task, one merging seat per repository) is binding and is the mitigation (`roadmap/0.0/MIN.md`).
+- Blocks: 0.1's lease scope.
 
 ## Accounts and policy
 
@@ -94,6 +106,7 @@ Drafted 2026-10-10, revised the same day. Each question is one the author must d
 
 **DQ-17. Set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=0` in both accounts' settings?**
 - Recommendation: yes, so Claude does not turn named subagents into teammates and the one `SendMessage` tool name is not shared between two systems [r1 §8].
+- **Decided 2026-10-15 by cycle 0.0-min's decision 6 (the queued batch), which the author approved as recommended:** yes; step 6's settings fragment sets it in both accounts (`roadmap/0.0/MIN.md`).
 - Blocks: 0.0 setup.
 
 **DQ-20. Does an audit run through Antigravity on a Claude model count as a "different perspective"?**
@@ -105,6 +118,7 @@ Drafted 2026-10-10, revised the same day. Each question is one the author must d
 - Why it matters: auto-memory lives under `CLAUDE_CONFIG_DIR`, so the Team seat will not see the Max account's memory notes for the same project; `autoMemoryDirectory` or `CLAUDE_CODE_PROJECT_DIR_NAME` (v2.1.234+) can point both at one place with no code [r7 §4], and a Team worker that rotates often would benefit at once [c1 C-22]. With `CLAUDE_CODE_PROJECT_DIR_NAME`, `CLAUDE_CONFIG_DIR` must also be set [r1b §5].
 - Options: share one directory now (immediate; two accounts' sessions then write one memory tree, with the usual last-write hazards); keep them separate and export through Diogenes in 0.4 (DR-72); share read-only by copying at rotation.
 - Recommendation: share one directory now for the project-scoped memory, and record it as a fact; revisit if two sessions' writes collide.
+- **Deferred 2026-10-15 by cycle 0.0-min's decision 6 (the queued batch), which the author approved as recommended,** against this entry's recommendation to share now: each account keeps its own auto-memory for now.
 - Blocks: day-zero setup.
 
 ## Delivery and waking
@@ -153,6 +167,7 @@ Drafted 2026-10-10, revised the same day. Each question is one the author must d
 
 **DQ-15. The credits correction factor.**
 - Recommendation: store "about two-thirds of the CLI figure" as a fact with its measurement date, and re-measure when the Console shows a new balance. Now a P0 fact (DR-59).
+- **Deferred 2026-10-15 by cycle 0.0-min's decision 6 (the queued batch), which the author approved as recommended.** 0.0-min prints the credits ledger as it is, labelled uncorrected, so no factor is applied yet. The conflict stays open for the author: this entry says about two-thirds, while the 2026-10-10 plan and the re-scope say 1.00, marked "the author confirms" (`roadmap/0.0/MIN.md`, DR-59's row).
 - Blocks: DR-59.
 
 **DQ-13. Research TTLs per category, and who may verify.**

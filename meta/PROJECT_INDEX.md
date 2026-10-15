@@ -17,8 +17,9 @@ A cheat sheet: where everything is, in this repository and outside it. Paths out
 | Architecture (two transports), data model (tasks in §2.3), delivery modes, backend choice, access model, threat model, prior art, the P0 slice | `meta/DESIGN.md` |
 | Day zero, cycles 0.0 to 0.8 with gates, dependencies and sizes | `meta/roadmap/ROADMAP.md` |
 | Subcycle plans, when written | `meta/roadmap/<cycle>/`; finished cycles in `meta/roadmap/done/` |
-| Task files, one per task, committed on `main` by `diogenes_0` (from cycle 0.0-min's gate M3), and their convention | `meta/tasks/`, `meta/tasks/README.md` |
-| Decisions for the author, DQ-1 to DQ-29 (DQ-14 withdrawn) | `meta/OPEN_QUESTIONS.md` |
+| Task files, one per task, committed on `main` by the merger (from cycle 0.0-min's gate M3), and their convention | `meta/tasks/`, `meta/tasks/README.md` |
+| The role line: who holds `team-seat`, `merger`, `poster` and any other role, written on `main` by the merger alone; `dio who --address <role>` resolves from it | `meta/ROLES.md` |
+| Decisions for the author, DQ-1 to DQ-30 (DQ-14 withdrawn); those cycle 0.0-min decided or deferred carry a dated note | `meta/OPEN_QUESTIONS.md` |
 | Feasibility probes, DX-1 to DX-26, ordered by what they unblock, with the measured ones marked DONE | `meta/EXPERIMENTS.md` |
 | The creative parking lot | `meta/IDEAS.md` |
 | Round-1 research digests, their prompts, the critique, the review of this revision, and the index | `meta/research/done/`, `meta/research/done/prompts/`, `meta/research/done/README.md`, `meta/research/done/REVIEW-2026-10-10.md` |

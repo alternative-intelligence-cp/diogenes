@@ -78,6 +78,7 @@ Priorities follow the author's words: the Team seat is hoped for by the weekly r
 5. **Presence.** `dio who` shows both accounts' sessions with role, name, session id, account and state, shows `live-idle` for a session whose process is alive but silent, and `unknown` only when the process check is impossible.
 6. **Room per account.** Each account's five-hour and seven-day meters, the Fable line, and each seat's context percentage are readable by name from the other account; the Team account's room is shown as a dated `estimate` with its method until a measured source exists (DX-26), and `unknown` where no source exists at all.
 7. **Roles cannot be captured.** A second registration claiming `libs-seat` does not receive `libs-seat` mail or tasks.
+   - **Amended 2026-10-15 by cycle 0.0-min's decision 3, approved by the author:** a convention in 0.0-min. The role line is a committed file, `meta/ROLES.md`; `dio who --address` resolves only from it, and a worker refuses a poster not on it. A session that asserts a role is not stopped, only ignored by the resolver. Enforcement is 0.1 (`roadmap/0.0/MIN.md`).
 8. The author has relayed zero messages or tasks between the two accounts during a working day of normal use.
 
 A structured handoff with the two-signal close (criterion 5 of the first draft) stays P0 but lands in cycle 0.1: the orchestrator rotates on the Max account, where `SendMessage` already works, and Team workers rotate without a handoff because their state is the task.
