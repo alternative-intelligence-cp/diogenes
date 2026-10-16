@@ -612,7 +612,8 @@ def survey(roots, state_root, now=utc_now):
                 warn('cannot read the %s sessions directory %s: %s' % (label, root, e.strerror))
                 continue
             seen.setdefault(config_dir, set()).update(int(stem) for stem, _ in outcomes if len(stem) <= 10)
-            # The version record: the first strictly parsed file's version, in pid order.
+            # The version record: the version of the first strictly parsed file, in pid order,
+            # that carries one. A mismatched file with no readable version of its own shows it.
             record_version = next((o['version'] for _, o in outcomes
                                    if type(o) is dict and o['version']), None)
             for stem, outcome in outcomes:
