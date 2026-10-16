@@ -16,7 +16,9 @@ The standard world is MIN.md step 1's fixture list plus live entries:
                     names that do not match ^[0-9]+\\.json$, and a second canary
     max sessions/   a live entry                                (probe-m_1)
 A live entry is a child process this test owns, blocked reading its stdin, with a real
-Unix socket file bound under the temporary tree.
+Unix socket file bound under the temporary tree. Each socket is bound by a short name from
+inside its directory (World.listen), so a long $TMPDIR never meets the 108-byte limit on a
+socket's address.
 """
 
 import json
@@ -127,12 +129,24 @@ class World:
         child.wait()
         return child.pid
 
-    def listen(self, name):
-        path = os.path.join(self.socks, name)
+    def listen(self, name, directory=None):
+        """Bind a Unix socket file at <directory>/<name>, by default in socks/; returns its path.
+
+        A socket's address may hold at most 108 bytes (sun_path), and a long $TMPDIR passes
+        that. So the bind uses the short relative name from inside the directory, and the
+        working directory is restored at once. The socket file still sits at its full
+        absolute path, which is what a sessions record names and what dio stats.
+        """
+        directory = directory or self.socks
         listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        listener.bind(path)
         self.listeners.append(listener)
-        return path
+        previous = os.getcwd()
+        os.chdir(directory)
+        try:
+            listener.bind(name)
+        finally:
+            os.chdir(previous)
+        return os.path.join(directory, name)
 
     def record(self, pid, name, status='busy', start=None, sock=None, **extra):
         """A sessions record shaped like Claude Code 2.1.301's, with extra keys it also writes."""

@@ -10,7 +10,6 @@ import contextlib
 import io
 import json
 import os
-import socket
 import stat
 import unittest
 from unittest import mock
@@ -146,9 +145,7 @@ class ReaderTests(Base):
         self.assertEqual(self.state(998), 'unknown (refused: not a regular file)')
 
     def test_socket_file_named_like_a_sessions_file_is_refused(self):
-        listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.addCleanup(listener.close)
-        listener.bind(os.path.join(self.world.team_root, '997.json'))
+        self.world.listen('997.json', self.world.team_root)
         self.assertEqual(self.state(997), 'unknown (refused: not a regular file)')
 
     @unittest.skipIf(os.geteuid() == 0, 'root can read a mode-000 file')
@@ -308,6 +305,22 @@ class ProcessCheckTests(Base):
         self.world.session(self.world.team_root, self.world.record(pid, 'probe-t_8', sock=plain))
         self.assertEqual(self.state(pid), dio.CHECKING)
         self.assertEqual(self.grace_entry(pid)['failedCheck'], 'not a socket')
+
+    def test_a_live_session_under_a_path_longer_than_108_bytes_reads_live(self):
+        deep = self.world.make('d' * 120)
+        root = self.world.make('d' * 120, 'sessions')
+        pid = self.world.live_process()
+        sock = self.world.listen('%d.sock' % pid, deep)
+        self.assertGreater(len(sock.encode()), 108)
+        self.world.session(root, self.world.record(pid, 'probe-t_8', sock=sock))
+        flags = ['--sessions-root', 'team=' + root, '--state-root', self.world.state,
+                 '--roles', self.world.roles]
+        result = self.world.run('who', *flags)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        row = table(result.stdout)[('team', str(pid))]
+        self.assertEqual((row['SOCKET'], row['STATE']), (sock, 'live'))
+        result = self.world.run('who', '--address', 'probe-t_8', *flags)
+        self.assertEqual((result.returncode, result.stdout), (0, sock + '\n'))
 
     def test_the_account_is_the_directory_read(self):
         status, out, err = self.main('who', '--sessions-root', 'team=' + self.world.max_root,

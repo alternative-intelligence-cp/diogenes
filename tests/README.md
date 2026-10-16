@@ -59,14 +59,14 @@ A further case checks that the detector flags `.key` paths in synthetic trace li
 | max `sessions/` | a live entry (`probe-m_1`) | the second account |
 | `ROLES.md` | a test role line, with lines outside the fence | role resolution |
 
-A live entry is a child process the test owns, blocked reading its stdin, with a real Unix socket file bound in the temporary tree. A dead pid is a child that has exited and been reaped. Linux hands out pids in rising order, so it is not reused while the tests run unless the pid counter wraps.
+A live entry is a child process the test owns, blocked reading its stdin, with a real Unix socket file bound in the temporary tree. A socket's address may hold at most 108 bytes, and a long `TMPDIR` passes that, so `World.listen` binds each socket by its short name from inside its directory and restores the working directory at once. The socket file still sits at its full path, which `dio` only stats, and stat has no such limit. A dead pid is a child that has exited and been reaped. Linux hands out pids in rising order, so it is not reused while the tests run unless the pid counter wraps.
 
 ## What each file covers
 
 - `test_dio.py`:
   - `ReaderTests`: the name filter, nothing else opened or logged, `O_NOFOLLOW` relative to the listed directory, the symlink, a FIFO (without blocking), a directory and a socket named like a sessions file, an unreadable file, a missing sessions directory.
   - `ParseTests`: the torn file, the version record, every listed field and type, duplicate keys, `NaN`, non-UTF-8, trailing data, more than 64 KiB, leading zeros, unlisted keys ignored, a null or absent name.
-  - `ProcessCheckTests`: `live`, `live-idle`, the four `status` values, a reused pid, a dead pid, a missing socket, a path that is not a socket, the account as the directory read, `procStart` as field 22.
+  - `ProcessCheckTests`: `live`, `live-idle`, the four `status` values, a reused pid, a dead pid, a missing socket, a path that is not a socket, a live session whose socket and sessions directory sit under a path longer than 108 bytes (read as `live`, and resolved by `--address`), the account as the directory read, `procStart` as field 22.
   - `GraceTests`: `unknown (checking)` until 60 seconds and then `gone`, the stored absolute times, the key by config dir and pid, removal on a passing check, a restarted grace for a new process, the first writer winning a race, pruning, an unwritable cache, a symlinked cache.
   - `OutputTests`: the columns, `--prefix` and its order, `--address` by role, exact name and bare prefix, `ambiguous: <n> live` with exit 1, `--highest`, roles with no live holder or several, lines outside the fence, sessions that are not live, a malformed or missing role file, `--highest` without `--address`.
   - `RegisterTests`: the roster entry and its fields, the fallback label, every refusal, the config dir key, a re-registration, and the roster in `dio who`, `--prefix` and `--address`, hidden behind a parsed sessions file, shown beside a mismatched one, through the grace when its process dies, and ignored when not in the format.

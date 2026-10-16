@@ -69,11 +69,12 @@ class M7aStraceTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         fixtures.require_tmpdir()
-        cls.world = World().standard()
+        cls.world = World()
         try:
+            cls.world.standard()
             cls.command, cls.result, cls.lines = run_m7a(cls.world)
         except BaseException:
-            cls.world.close()
+            cls.world.close()  # tearDownClass does not run when setUpClass fails
             raise
 
     @classmethod
@@ -115,8 +116,9 @@ class M7aStraceTest(unittest.TestCase):
 
 def main():
     fixtures.require_tmpdir()
-    world = World().standard()
+    world = World()
     try:
+        world.standard()
         command, result, lines = run_m7a(world)
         shown = [line.replace(world.base, '<scratch>') for line in lines
                  if '"123.json"' in line or '"%s.json"' % TORN in line or '.key' in line
