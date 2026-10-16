@@ -11,6 +11,13 @@
 > - **The author's steps** are compiled in `/home/randy/Team/REPORTS/DIO-0.0-min-author-steps.md` (A1–A3 setup, B1–B8 probe sessions and waits).
 > - **The role line, `meta/ROLES.md`, is on `main`,** written by the merger in the records commit after the merge. Its first `team-seat` line names Ailp-team_2, who took over the Team seat from Ailp-team_1 at 11:28 (checked at 11:32 by `test -S` on its socket and the from-name on its own message). Decision 3's starting lines below name `_1`, the holder when this plan was written. The task files follow at M3; `meta/tasks/README.md` states their convention.
 > - **DX-3's first run, B1, is filed** (2026-10-15, 14:36–14:47 EDT). It stopped at S1, so it is a partial result: DX-3's RESULT in `meta/EXPERIMENTS.md`, its files in `meta/research/done/dx3-probe-2026-10-15/`, and dated notes below on step 2, step 6's A2, M2, M4, the `USING.md` caveats and D1v's findings 2 and 8. The rest of DX-3 re-runs at the gate. The Team seat's D2b filed it on `team/diogenes-0.0-dx3-results`. **Its verification:** D2bv (`general-purpose`, Sonnet 5.5, 17:34:03–17:54:09) PASS, five findings, none blocking (`/home/randy/Team/REPORTS/D2bv-diogenes-dx3-results-verify.md`). The records commit after the merge takes findings 1, 2, 4 and 5, re-points the three moved pointers, and records the five stale items D2b found. `diogenes_0`'s Workspace-side check: PASS at 18:02 (the byte copies against their sources, each reading against its source, the ten documentation quotes against the live pages, the hook scripts, the identifiers, §7). Merged to `main` at 18:03 EDT as `fa2dbb3`.
+> - **Build step 1, `dio who`, is merged** (2026-10-15). The Team seat's D3 built it on `team/diogenes-0.0-dio-who`: `src/dio` (`dio who` and `dio register`, Python standard library only), its README, and the tests with their fixtures and gate row M7a's strace check, which passes. **Its verifications** (`/home/randy/Team/REPORTS/`):
+>   - D3v (`npk:verifier`, Sonnet 5.5, 22:29:51–22:50:06) PASSED `a6cec95` with eight findings, none blocking (`D3v-diogenes-dio-who-verify.md`).
+>   - D3f's fix round took findings 1–5 and 8 before the merge, at `diogenes_0`'s request (`D3f-diogenes-dio-who-fix.md`).
+>   - D3v2 (`npk:verifier`, Sonnet 5.5, 23:29:40–23:50:15) PASSED `4e0badf` with four findings, none blocking; they go to the next step's branch (`D3v2-diogenes-dio-who-verify.md`).
+>   - `diogenes_0`'s Workspace-side check PASSED `a6cec95` at 23:02 and `4e0badf` at 23:55: the code against step 1, the suite with `TMPDIR` in its scratchpad, M7a, an strace audit of every write the tests make, a live run from the Max side, and §7.
+>
+>   Merged to `main` at 23:55 EDT as `24c661a`. The build's choices where step 1 is silent are `src/README.md`'s decisions 1–13 (the note after step 1).
 
 ## Summary for the author
 
@@ -83,6 +90,14 @@ Two facts change the plan. First, both user settings already hold `crossSessionI
 - Fixtures: a fake sessions directory with a canary `.key`, a stale file for a dead pid, a reused pid with a different `procStart`, a half-written JSON, and a symlink named `123.json`.
 
 Prediction: sandboxed Bash cannot read either config dir. If DX-3 confirms it, `dio who` goes into `sandbox.excludedCommands` as an `[author]` step and the fixture test runs the same way. Neither user settings file has a `sandbox` key today, so every sandbox entry below is a new key.
+
+- **Note 2026-10-15, `diogenes_0`, at build step 1's merge (`24c661a`):** where the code reads this step's words, and what it leaves to later steps.
+  - **"No code path ever lists, opens or names a `.key` file"** holds as follows. Every entry whose name does not match `^[0-9]+\.json$` is dropped as `os.scandir` returns it, and is never opened, stat'ed or logged; `os.scandir` itself receives every name (D3's report, `/home/randy/Team/REPORTS/D3-diogenes-dio-who.md`). `dio` stats, but never opens, the socket path that a parsed entry names. So a crafted same-uid file could make it stat and print a `.key` path, which is Risk 3's class (`src/README.md`, "What it stats and prints from a file").
+  - **`version`**, which the field list above omits, is checked when present, and each row shows its own file's version (`src/README.md`, decision 3).
+  - **The build's own choices** where this step is silent are `src/README.md`'s decisions 1–13. D3v and D3v2 found each within this plan's silence and none touching M1, M6, M7a or M7b.
+  - **For M1's setup:** `dio` reads the role line from the clone it runs from (decision 10), so the Team clone pulls `main` before M1.
+  - **For step 5:** roster entries never expire, so `USING.md` says how to remove one.
+  - **Not built yet:** the `claude agents --json` fallback, which is built last (the size table).
 
 **Step 2. DX-3 narrowed, DX-18, DX-13.** DX-3 confirms, in both config dirs: `messagingSocketPath` equals `$CLAUDE_CODE_MESSAGING_SOCKET` in Bash; `name` equals the `ListAgents` name for a session started with `--name`, and what `name` holds unnamed; whether sandboxed Bash can read `sessions/`; whether `/proc/<host pid>` and its start time are visible from sandboxed Bash (the leg DR-108 needs, `meta/EXPERIMENTS.md:131`); and whether a sandboxed Bash `touch` and a Write-tool write into `~/.local/share/diogenes/inbox/` succeed with the step-6 fragment and fail without it. DX-18's listing half runs here: `claude agents --json --all` per config dir with one interactive session open, to learn whether interactive sessions appear at all (`EXPERIMENTS.md:232`). Its background-session wait is not needed. The DQ-4 `/config` look rides along. DX-13's 10-minute leg runs before `dio watch` ships; the 2-hour leg during the gate.
 

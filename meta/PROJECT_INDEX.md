@@ -26,7 +26,7 @@ A cheat sheet: where everything is, in this repository and outside it. Paths out
 | Research still to do | `meta/research/todo/` |
 | Known issues | `meta/issues/open/`, `meta/issues/closed/` |
 | Per-agent private files, the shared space, scratch | `.internal/agent/<identity>/`, `.internal/shared/`, `.internal/scratch/` (gitignored) |
-| Code, docs, tests, vendored code | `src/`, `docs/`, `tests/`, `vendors/` (empty skeletons today) |
+| Code, docs, tests, vendored code | `src/dio` (`dio who` and `dio register`, 0.0-min's build step 1; `src/README.md` gives its layout, output and decisions) and `tests/` (`tests/README.md`). `docs/` and `vendors/` are empty skeletons today |
 | Licence | `LICENSE` (AGPL-3.0) |
 
 ## Outside this repository
