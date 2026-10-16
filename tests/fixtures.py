@@ -95,6 +95,42 @@ class Clock:
         self.moment += timedelta(seconds=seconds)
 
 
+class WatchClock:
+    """dio watch's clocks, injected, so no test sleeps. sleep() records the seconds asked for,
+    moves the real and the monotonic clock on by them, and then runs the actions set with
+    at(n, action) for the end of the n-th sleep, counted from 1 over the clock's life, such as
+    a file dropped into the watched directory."""
+
+    START_NS = int(datetime(2026, 10, 16, 7, 0, 0, tzinfo=timezone.utc).timestamp()) * 10 ** 9
+    MOST_SLEEPS = 10000  # a watch that never ends fails its test instead of hanging it
+
+    def __init__(self):
+        self.real, self.monotonic, self.sleeps, self.actions = self.START_NS, 10 ** 15, [], {}
+
+    def real_ns(self):
+        return self.real
+
+    def monotonic_ns(self):
+        return self.monotonic
+
+    def advance(self, seconds):
+        """Time that passes outside a watch, such as the seat's turn between two watches."""
+        step = round(seconds * 10 ** 9)
+        self.real += step
+        self.monotonic += step
+
+    def sleep(self, seconds):
+        if len(self.sleeps) >= self.MOST_SLEEPS:
+            raise AssertionError('the watch did not end')
+        self.sleeps.append(seconds)
+        self.advance(seconds)
+        for action in self.actions.pop(len(self.sleeps), []):
+            action()
+
+    def at(self, sleep, action):
+        self.actions.setdefault(sleep, []).append(action)
+
+
 class World:
     def __init__(self):
         require_tmpdir()

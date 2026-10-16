@@ -1,15 +1,19 @@
 #!/usr/bin/python3 -IB
-"""dio: Diogenes 0.0-min, build step 1. Presence read from Claude Code's own sessions files.
+"""dio: Diogenes 0.0-min, build steps 1 and 3. Presence read from Claude Code's own sessions
+files, and the seat's own background wait on a directory.
 
     dio who                         every session in both config dirs, one row each
     dio who --prefix P              live sessions whose name starts with P, by trailing _N
     dio who --address X [--highest] X resolved to a socket: a role on the role line,
                                     an exact live name, or a bare prefix (X_N)
     dio register NAME               the fallback: this seat's entry in the roster
+    dio watch DIR [--every S] [--max S]
+                                    run in the background: WAKE <path> and exit 0 on a new
+                                    regular file in DIR, or REARM <dir> and exit 1 at the cap
 
-Standard library only (DQ-2). The plan of record is meta/roadmap/0.0/MIN.md, step 1.
+Standard library only (DQ-2). The plan of record is meta/roadmap/0.0/MIN.md, steps 1 and 3.
 src/README.md gives the layout, the output, the files written, the exit codes, and the
-choices this step made where the plan is silent.
+choices each step made where the plan is silent.
 
 Overrides. The defaults are MIN.md's, and every test points all of them elsewhere:
     --sessions-root LABEL=PATH  dio who: a sessions directory and its account label.
@@ -35,10 +39,14 @@ import os
 import re
 import stat
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 
 GRACE_SECONDS = 60
 RECORD_LIMIT = 64 * 1024  # most bytes read from one sessions file, roster entry or cache entry
+# The most digits a pid has: Linux's pid_t is a signed 32-bit integer, so 2147483647 is the
+# largest pid it can hold. The roster, grace-cache and socket-name patterns below use the same 10.
+PID_DIGITS = 10
 
 # Names are matched with fullmatch, so a trailing newline cannot slip past the pattern.
 SESSIONS_FILE = re.compile(r'[0-9]+\.json', re.ASCII)
@@ -236,9 +244,9 @@ def _optional(record, key, check):
 def parse_session(raw, stem):
     """The strict parse of one sessions file, MIN.md step 1.
 
-    Required: pid, an int equal to the file's name; procStart, decimal digits (the
-    process start time in clock ticks after boot, field 22 of /proc/<pid>/stat);
-    messagingSocketPath, an absolute path. Optional, and checked when present:
+    Required: pid, an int equal to the file's name, which has at most PID_DIGITS digits;
+    procStart, decimal digits (the process start time in clock ticks after boot, field 22
+    of /proc/<pid>/stat); messagingSocketPath, an absolute path. Optional, and checked when present:
     sessionId and cwd (strings), name (text or null), status (busy, shell, idle or
     waiting), startedAt and updatedAt (finite numbers, not negative, that a float can
     hold), version (text). Other keys are ignored. Raises Mismatch, carrying the file's own
@@ -253,7 +261,7 @@ def parse_session(raw, stem):
     version = record.get('version') if _text(record.get('version')) else None
     pid = record.get('pid')
     sound = (
-        type(pid) is int and pid > 0 and str(pid) == stem
+        len(stem) <= PID_DIGITS and type(pid) is int and pid > 0 and str(pid) == stem
         and _digits(record.get('procStart'))
         and _absolute(record.get('messagingSocketPath'))
         and _optional(record, 'sessionId', lambda v: type(v) is str)
@@ -626,7 +634,8 @@ def survey(roots, state_root, now=utc_now):
             except OSError as e:
                 warn('cannot read the %s sessions directory %s: %s' % (label, root, e.strerror))
                 continue
-            seen.setdefault(config_dir, set()).update(int(stem) for stem, _ in outcomes if len(stem) <= 10)
+            seen.setdefault(config_dir, set()).update(int(stem) for stem, _ in outcomes
+                                                      if len(stem) <= PID_DIGITS)
             # The version record: the version of the first strictly parsed file, in pid order,
             # that carries one. A mismatched file with no readable version of its own shows it.
             record_version = next((o['version'] for _, o in outcomes
@@ -663,7 +672,8 @@ def survey(roots, state_root, now=utc_now):
             cache.prune(config_dir, pids)
     finally:
         cache.close()
-    rows.sort(key=lambda r: (order[r.account], trailing_key(r), int(r.pid) if len(r.pid) <= 10 else 0))
+    rows.sort(key=lambda r: (order[r.account], trailing_key(r),
+                             int(r.pid) if len(r.pid) <= PID_DIGITS else 0))
     return rows
 
 
@@ -772,7 +782,10 @@ def register(name, state_root, config_dir, pid, environ, now):
         if not match:
             return 1, [], ['dio register: the socket file is not named <pid>.sock; pass --pid']
         pid = int(match.group(1))
-    proc_start = proc_start_of(pid)
+    try:
+        proc_start = proc_start_of(pid)
+    except OSError:  # ENAMETOOLONG: a --pid of thousands of digits, a path /proc cannot name
+        proc_start = None
     if proc_start is None:
         return 1, [], ['dio register: no process %d' % pid]
     try:
@@ -808,7 +821,178 @@ def register(name, state_root, config_dir, pid, environ, now):
     return 0, ['registered %s  pid %d  %s  %s' % (name, pid, socket_path, FALLBACK_LABEL)], []
 
 
+# ---------------------------------------------------------------- dio watch (MIN.md step 3)
+
+WATCH_EVERY = 60  # --every's default: MIN.md step 3's `--every 60`
+WATCH_CAP = 3000  # --max's default, 50 minutes: provisional until the gate's DX-13 legs
+WATCH_LIMIT = 86400  # the most whole seconds --every or --max takes: one day
+# A name not present at the start wakes the watch only if its mtime is later than the start
+# less this margin. The kernel stamps mtimes from a clock that trails time.time_ns() by up
+# to a tick, so a file made just after the start can carry an mtime just before it.
+MTIME_MARGIN_NS = 2 * 10 ** 9
+# What a printed path escapes, so its line stays one line: a backslash, C0 and C1 controls,
+# DEL, the line and paragraph separators, and lone surrogates (a byte that is not UTF-8).
+WATCH_ESCAPE = re.compile(r'[\\\x00-\x1f\x7f-\x9f\u2028\u2029\ud800-\udfff]')
+WATCH_HELP = (
+    "MIN.md step 3: the background until loop the seat runs, with its Bash tool's "
+    "run_in_background. It lists DIR, then reads the clock: the start. Every --every seconds "
+    "it stats each name that was not in DIR at the start, never opening one, and the first "
+    "regular file whose mtime is later than the start less 2 s ends it: WAKE <path>, exit 0. "
+    "A file present at the start never wakes it, whatever its mtime. After --max seconds with "
+    "no such file it prints REARM <dir> and exits 1, so the seat re-arms. A refusal exits 2. "
+    "The seat reads the clock before arming each watch, and after every exit re-arms first, "
+    "then reads every regular file in DIR whose mtime is later than the previous reading "
+    "less 2 s, which covers a file that lands between two watches (src/README.md).")
+
+
+class SystemClock:
+    """dio watch's clocks. The real clock gives the start, which mtimes are compared with; the
+    monotonic clock times the cap, so a step of the real clock cannot stretch or cut it."""
+
+    @staticmethod
+    def real_ns():
+        return time.time_ns()
+
+    @staticmethod
+    def monotonic_ns():
+        return time.monotonic_ns()
+
+    @staticmethod
+    def sleep(seconds):
+        time.sleep(seconds)
+
+
+def printable(text):
+    """`text` on one line: each character WATCH_ESCAPE matches becomes an escape, a backslash
+    `\\\\`, a byte that is not UTF-8 `\\xNN` of that byte, any other `\\xNN` or `\\uNNNN`."""
+    def escape(match):
+        character = match.group()
+        if character == '\\':
+            return '\\\\'
+        code = ord(character)
+        if 0xdc80 <= code <= 0xdcff:  # how os.fsdecode holds a byte that is not UTF-8
+            return '\\x%02x' % (code - 0xdc00)
+        return '\\x%02x' % code if code <= 0xff else '\\u%04x' % code
+    return WATCH_ESCAPE.sub(escape, text)
+
+
+class WatchError(Exception):
+    """The directory cannot be watched: refused at the start, or gone or changed since."""
+
+
+def open_watched(path):
+    """(fd, identity) of the directory at `path`. The open uses O_DIRECTORY and O_NOFOLLOW, so
+    anything but a real directory is refused, a symlink even to a directory. Raises WatchError."""
+    try:
+        fd = os.open(path, DIR_FLAGS | os.O_NOFOLLOW)
+    except FileNotFoundError:
+        raise WatchError('no such directory: %s' % printable(path)) from None
+    except NotADirectoryError:
+        try:
+            link = stat.S_ISLNK(os.lstat(path).st_mode)
+        except OSError:
+            link = False
+        raise WatchError('%s: %s' % ('a symlink, not a directory' if link else 'not a directory',
+                                      printable(path))) from None
+    except OSError as e:
+        raise WatchError('cannot read %s: %s' % (printable(path), e.strerror)) from None
+    try:
+        st = os.fstat(fd)
+    except OSError:
+        os.close(fd)
+        raise
+    return fd, (st.st_dev, st.st_ino)
+
+
+def names_in(dir_fd):
+    """Every name in the directory open as `dir_fd`. os.scandir reads the directory itself only."""
+    with os.scandir(dir_fd) as entries:
+        return [entry.name for entry in entries]
+
+
+def start_watch(path):
+    """(absolute path, identity, the names present at the start). Raises WatchError."""
+    try:
+        absolute = os.path.join(os.getcwd(), path) if path and not os.path.isabs(path) else path
+        fd, identity = open_watched(absolute)
+    except OSError as e:  # os.getcwd() or os.fstat
+        raise WatchError('cannot read %s: %s' % (printable(path), e.strerror)) from None
+    try:
+        return absolute, identity, frozenset(names_in(fd))
+    except OSError as e:
+        raise WatchError('cannot read %s: %s' % (printable(absolute), e.strerror)) from None
+    finally:
+        os.close(fd)
+
+
+def new_regular_files(absolute, identity, present, since_ns):
+    """[(mtime_ns, name)] of the regular files in the directory whose names are not in
+    `present` and whose mtime is later than `since_ns`. The directory is opened again and
+    must be the same one (device and inode). Each new name is stat'ed relative to it without
+    following a symlink (fstatat with AT_SYMLINK_NOFOLLOW) and never opened. Raises WatchError."""
+    try:
+        fd, now = open_watched(absolute)
+    except OSError as e:  # os.fstat
+        raise WatchError('cannot read %s: %s' % (printable(absolute), e.strerror)) from None
+    try:
+        if now != identity:
+            raise WatchError('%s is another directory now' % printable(absolute))
+        found = []
+        for name in names_in(fd):
+            if name in present:
+                continue
+            try:
+                st = os.stat(name, dir_fd=fd, follow_symlinks=False)
+            except FileNotFoundError:
+                continue  # removed since the listing
+            if stat.S_ISREG(st.st_mode) and st.st_mtime_ns > since_ns:
+                found.append((st.st_mtime_ns, name))
+        return found
+    except OSError as e:
+        raise WatchError('cannot read %s: %s' % (printable(absolute), e.strerror)) from None
+    finally:
+        os.close(fd)
+
+
+def watch(path, every, cap, clock):
+    """MIN.md step 3's wait. Returns (exit status, stdout lines, stderr lines).
+
+    It lists the directory, then reads the real clock: the start. A name listed then never
+    wakes it, whatever its mtime. It polls at once and then every `every` seconds: the first
+    regular file, by mtime and then by name, among the new names whose mtime is later than
+    the start less MTIME_MARGIN_NS ends it with `WAKE <path>`, exit 0. Once `cap` seconds have
+    passed on the monotonic clock with none, it ends with `REARM <dir>`, exit 1. The last
+    sleep is cut to the cap, and a poll comes after it, so a file that lands in the last
+    interval still wakes it. A refusal, or the directory gone, replaced or unreadable during
+    the watch, ends it with exit 2.
+    """
+    try:
+        absolute, identity, present = start_watch(path)
+    except WatchError as e:
+        return 2, [], ['dio watch: %s' % e]
+    since = clock.real_ns() - MTIME_MARGIN_NS
+    deadline = clock.monotonic_ns() + cap * 10 ** 9
+    while True:
+        try:
+            found = new_regular_files(absolute, identity, present, since)
+        except WatchError as e:
+            return 2, [], ['dio watch: during the watch, %s' % e]
+        if found:
+            return 0, ['WAKE ' + printable(os.path.join(absolute, min(found)[1]))], []
+        left = deadline - clock.monotonic_ns()
+        if left <= 0:
+            return 1, ['REARM ' + printable(absolute)], []
+        clock.sleep(min(every * 10 ** 9, left) / 10 ** 9)
+
+
 # ---------------------------------------------------------------- command line
+
+def _seconds(text):
+    if not re.fullmatch(r'[0-9]{1,6}', text, re.ASCII) or not 1 <= int(text) <= WATCH_LIMIT:
+        raise argparse.ArgumentTypeError('expected whole seconds from 1 to %d, got %r'
+                                         % (WATCH_LIMIT, text))
+    return int(text)
+
 
 def _sessions_root(text):
     label, sep, path = text.partition('=')
@@ -855,18 +1039,32 @@ def build_parser():
                           'else ~/.claude)')
     reg.add_argument('--pid', type=_positive,
                      help="the session's pid, if the socket file is not named <pid>.sock")
+    wat = commands.add_parser('watch', help='the background wait: WAKE <path> on a new regular '
+                              'file in DIR, or REARM <dir> at the cap', description=WATCH_HELP)
+    wat.add_argument('directory', metavar='DIR', help='the directory to watch, such as an inbox')
+    wat.add_argument('--every', metavar='S', type=_seconds, default=WATCH_EVERY,
+                     help='seconds between polls, 1 to %d (default %d)' % (WATCH_LIMIT, WATCH_EVERY))
+    wat.add_argument('--max', metavar='S', type=_seconds, default=WATCH_CAP,
+                     help='the cap: after S seconds with no new file, print REARM <dir> and exit 1, '
+                          'so the seat re-arms; 1 to %d (default %d, provisional until the gate: '
+                          'a background loop is measured to 10 minutes only, and the time past '
+                          "10 minutes is untested until the gate's 2-hour leg)"
+                          % (WATCH_LIMIT, WATCH_CAP))
     parser.who_parser = who
     return parser
 
 
-def main(argv=None, now=utc_now, environ=None):
+def main(argv=None, now=utc_now, environ=None, clock=None):
     environ = os.environ if environ is None else environ
     parser = build_parser()
     args = parser.parse_args(argv)
-    state_root = args.state_root or default_state_root()
-    if args.command == 'register':
-        status, out, err = register(args.name, state_root, args.config_dir, args.pid, environ, now)
+    if args.command == 'watch':
+        status, out, err = watch(args.directory, args.every, args.max, clock or SystemClock())
+    elif args.command == 'register':
+        status, out, err = register(args.name, args.state_root or default_state_root(),
+                                    args.config_dir, args.pid, environ, now)
     else:
+        state_root = args.state_root or default_state_root()
         if args.highest and args.address is None:
             parser.who_parser.error('--highest needs --address')
         rows = survey(args.sessions_root or default_sessions_roots(), state_root, now)
