@@ -39,6 +39,9 @@ from datetime import datetime, timedelta, timezone
 
 GRACE_SECONDS = 60
 RECORD_LIMIT = 64 * 1024  # most bytes read from one sessions file, roster entry or cache entry
+# The most digits a pid has: Linux's pid_t is a signed 32-bit integer, so 2147483647 is the
+# largest pid it can hold. The roster, grace-cache and socket-name patterns below use the same 10.
+PID_DIGITS = 10
 
 # Names are matched with fullmatch, so a trailing newline cannot slip past the pattern.
 SESSIONS_FILE = re.compile(r'[0-9]+\.json', re.ASCII)
@@ -236,9 +239,9 @@ def _optional(record, key, check):
 def parse_session(raw, stem):
     """The strict parse of one sessions file, MIN.md step 1.
 
-    Required: pid, an int equal to the file's name; procStart, decimal digits (the
-    process start time in clock ticks after boot, field 22 of /proc/<pid>/stat);
-    messagingSocketPath, an absolute path. Optional, and checked when present:
+    Required: pid, an int equal to the file's name, which has at most PID_DIGITS digits;
+    procStart, decimal digits (the process start time in clock ticks after boot, field 22
+    of /proc/<pid>/stat); messagingSocketPath, an absolute path. Optional, and checked when present:
     sessionId and cwd (strings), name (text or null), status (busy, shell, idle or
     waiting), startedAt and updatedAt (finite numbers, not negative, that a float can
     hold), version (text). Other keys are ignored. Raises Mismatch, carrying the file's own
@@ -253,7 +256,7 @@ def parse_session(raw, stem):
     version = record.get('version') if _text(record.get('version')) else None
     pid = record.get('pid')
     sound = (
-        type(pid) is int and pid > 0 and str(pid) == stem
+        len(stem) <= PID_DIGITS and type(pid) is int and pid > 0 and str(pid) == stem
         and _digits(record.get('procStart'))
         and _absolute(record.get('messagingSocketPath'))
         and _optional(record, 'sessionId', lambda v: type(v) is str)
@@ -626,7 +629,8 @@ def survey(roots, state_root, now=utc_now):
             except OSError as e:
                 warn('cannot read the %s sessions directory %s: %s' % (label, root, e.strerror))
                 continue
-            seen.setdefault(config_dir, set()).update(int(stem) for stem, _ in outcomes if len(stem) <= 10)
+            seen.setdefault(config_dir, set()).update(int(stem) for stem, _ in outcomes
+                                                      if len(stem) <= PID_DIGITS)
             # The version record: the version of the first strictly parsed file, in pid order,
             # that carries one. A mismatched file with no readable version of its own shows it.
             record_version = next((o['version'] for _, o in outcomes
@@ -663,7 +667,8 @@ def survey(roots, state_root, now=utc_now):
             cache.prune(config_dir, pids)
     finally:
         cache.close()
-    rows.sort(key=lambda r: (order[r.account], trailing_key(r), int(r.pid) if len(r.pid) <= 10 else 0))
+    rows.sort(key=lambda r: (order[r.account], trailing_key(r),
+                             int(r.pid) if len(r.pid) <= PID_DIGITS else 0))
     return rows
 
 
@@ -772,7 +777,10 @@ def register(name, state_root, config_dir, pid, environ, now):
         if not match:
             return 1, [], ['dio register: the socket file is not named <pid>.sock; pass --pid']
         pid = int(match.group(1))
-    proc_start = proc_start_of(pid)
+    try:
+        proc_start = proc_start_of(pid)
+    except OSError:  # ENAMETOOLONG: a --pid of thousands of digits, a path /proc cannot name
+        proc_start = None
     if proc_start is None:
         return 1, [], ['dio register: no process %d' % pid]
     try:

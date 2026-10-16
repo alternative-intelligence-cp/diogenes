@@ -10,6 +10,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -262,6 +263,29 @@ class ParseTests(Base):
         pid = self.world.live_process()
         self.world.write(self.world.team_root, '0%d.json' % pid, self.world.record(pid, 'probe-t_8'))
         self.assertTrue(self.state('0%d' % pid).startswith('unknown (sessions format: '))
+
+    def test_a_name_of_more_than_10_digits_is_a_mismatch_row_and_10_digits_still_parse(self):
+        # D3v2's finding 1, decision 4: no pid has more than 10 digits, so such a file is a
+        # mismatch before any process check, and no grace entry is made for it. Before the
+        # bound, 228 digits made the grace entry's name too long: `unknown (checking)` for
+        # ever, with a warning on every run. Run through the built dio, so stderr is its own.
+        gone = os.path.join(self.world.socks, 'gone.sock')
+        pids = {'11 digits': 12345678901, '228 digits': int('9' * 228), '10 digits': 9999999999}
+        for pid in pids.values():
+            self.world.session(self.world.team_root,
+                               self.world.record(pid, 'probe-t_8', start='100', sock=gone))
+        result = self.world.run('who', *self.world.who_flags())
+        self.assertEqual((result.returncode, result.stderr), (0, ''))
+        rows = table(result.stdout)
+        for case in ('11 digits', '228 digits'):
+            self.assertEqual(rows[('team', str(pids[case]))]['STATE'],
+                             'unknown (sessions format: %s)' % VERSION, case)
+        self.assertEqual(rows[('team', str(pids['10 digits']))]['STATE'], 'unknown (checking)')
+        files = self.world.cache_files()
+        self.assertIn(dio.GraceCache.entry_name(os.path.dirname(self.world.team_root),
+                                                pids['10 digits']), files)
+        self.assertEqual([n for n in files if str(pids['11 digits']) in n
+                          or str(pids['228 digits']) in n], [])
 
     def test_keys_the_plan_does_not_list_are_ignored(self):
         pid = self.world.live_process()
@@ -692,6 +716,18 @@ class RegisterTests(Base):
         self.assertEqual(status, 1)
         self.assertIn('no process %d' % dead, err)
 
+    def test_register_refuses_a_pid_too_long_for_proc_as_no_process_without_a_traceback(self):
+        # D3v2's finding 2: from 4,085 digits the kernel refuses /proc/<pid>/stat as too long a
+        # path (ENAMETOOLONG), and register gives its usual refusal, as for ENOENT. Run through
+        # the built dio: an uncaught OSError would also exit 1, so the stderr text is the test.
+        long_pid = '9' * 4200
+        result = self.world.run('register', 'probe-t_5', '--pid', long_pid, '--state-root',
+                                self.world.state, CLAUDE_CODE_MESSAGING_SOCKET=self.sock,
+                                CLAUDE_CONFIG_DIR=self.config_dir)
+        self.assertEqual((result.returncode, result.stdout), (1, ''))
+        self.assertEqual(result.stderr, 'dio register: no process %s\n' % long_pid)
+        self.assertEqual(self.roster(), [])
+
     def test_register_refuses_a_socket_path_that_is_not_a_socket(self):
         plain = self.world.write(self.world.socks, 'plain-%d.sock' % self.pid, b'')
         status, out, err = self.register('probe-t_5', '--pid', str(self.pid),
@@ -775,6 +811,58 @@ class RegisterTests(Base):
         status, out, err = self.who()
         self.assertIn("ignored roster entry %s: not in dio register's format" % name, err)
         self.assertNotIn('fallback: register', out)
+
+
+class TemporaryFileTests(Base):
+    """src/README.md's "What dio opens, all told" (D3v2's finding 3): the .tmp-<pid>-<12 hex>
+    files dio makes in cache/ and roster/ to publish an entry, and that none is left behind."""
+
+    def recording_creates(self):
+        """Patch os.open for dio; returns the list it records each O_CREAT open into."""
+        calls, real_open = [], os.open
+
+        def record(path, flags, mode=0o777, *, dir_fd=None):
+            if flags & os.O_CREAT:
+                calls.append((path, flags, mode, dir_fd))
+            return real_open(path, flags, mode, dir_fd=dir_fd)
+        patcher = mock.patch.object(dio.os, 'open', record)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        return calls
+
+    def leftovers(self):
+        names = []
+        for leaf in ('cache', 'roster'):
+            directory = os.path.join(self.world.state, leaf)
+            if os.path.isdir(directory):
+                names += [n for n in os.listdir(directory) if n.startswith('.tmp-')]
+        return names
+
+    def test_each_entry_goes_through_one_exclusive_0600_tmp_file_and_none_is_left(self):
+        gone = os.path.join(self.world.socks, 'gone.sock')
+        dead = self.world.dead_pid()
+        self.world.session(self.world.team_root, self.world.record(dead, 'probe-t_2', start='100',
+                                                                   sock=gone))
+        pid = self.world.live_process()
+        sock = self.world.listen('%d.sock' % pid)
+        calls = self.recording_creates()
+        self.who()  # a new grace entry: its temporary file is hard-linked to the name, then removed
+        self.assertEqual(self.leftovers(), [])
+        self.world.session(self.world.team_root, self.world.record(dead, 'probe-t_2', start='200',
+                                                                   sock=gone))
+        self.who()  # an earlier process's entry under that name: renamed over it
+        self.assertEqual(self.leftovers(), [])
+        status, out, err = self.main('register', 'probe-t_5', '--state-root', self.world.state,
+                                     environ={'CLAUDE_CODE_MESSAGING_SOCKET': sock})
+        self.assertEqual(status, 0, err)  # a roster entry: renamed over its name
+        self.assertEqual(self.leftovers(), [])
+        self.assertEqual(len(calls), 3, calls)
+        for path, flags, mode, dir_fd in calls:
+            self.assertRegex(path, r'^\.tmp-%d-[0-9a-f]{12}\Z' % os.getpid())
+            self.assertTrue(flags & os.O_EXCL and flags & os.O_NOFOLLOW, path)
+            self.assertEqual(mode, 0o600, path)
+            self.assertIsNotNone(dir_fd, path)
+        self.assertEqual(self.grace_entry(dead)['procStart'], '200')
 
 
 LONG_N = 'probe-t_' + '7' * 5000  # int() refuses more than 4300 digits by default
@@ -940,6 +1028,16 @@ class StaticTests(unittest.TestCase):
     def test_the_source_never_names_a_key_file(self):
         with open(DIO, 'rb') as f:
             self.assertNotIn(b'.key', f.read())
+
+    def test_the_readme_names_the_tmp_files_dio_makes_in_what_it_opens(self):
+        # D3v2's finding 3: the "What dio opens, all told" bullet names them, and says what
+        # dio does with them; TemporaryFileTests checks that account against the code.
+        with open(os.path.join(REPOSITORY, 'src', 'README.md'), encoding='utf-8') as f:
+            bullet = next(line for line in f if line.startswith('- **What `dio` opens, all told.**'))
+        self.assertIn('`.tmp-<pid>-<12 hex>`', bullet)
+        for words in ('`O_CREAT`, `O_EXCL` and `O_NOFOLLOW`, mode 0600', 'renames it over',
+                      'hard-links it', 'removes the temporary file'):
+            self.assertIn(words, bullet)
 
     def test_no_file_in_src_or_tests_holds_a_team_path(self):
         team_path = ('/home/' + 'randy/Team').encode()
