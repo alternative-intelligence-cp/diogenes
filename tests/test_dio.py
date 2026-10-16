@@ -686,6 +686,114 @@ class RegisterTests(Base):
         self.assertNotIn('fallback: register', out)
 
 
+LONG_N = 'probe-t_' + '7' * 5000  # int() refuses more than 4300 digits by default
+HUGE = int('9' * 400)  # too large for a float: math.isfinite raises OverflowError
+
+
+class CraftedNumberTests(Base):
+    """A number in a crafted file that int() or a float cannot hold gives a row or a warning,
+    never a traceback, in dio who and under --prefix and --address. Each case runs the
+    built src/dio, so the exit status is the process's own."""
+
+    def setUp(self):
+        super().setUp()
+        self.world.standard()
+
+    def run_who(self, *args):
+        result = self.world.run('who', *args, *self.world.who_flags())
+        self.assertNotIn('Traceback', result.stderr)
+        return result
+
+    def names(self, output):
+        return [line.split()[1] for line in output.splitlines()[1:]]
+
+    def register(self, name, pid):
+        sock = self.world.listen('%d.sock' % pid)
+        result = self.world.run('register', name, '--state-root', self.world.state,
+                                CLAUDE_CODE_MESSAGING_SOCKET=sock,
+                                CLAUDE_CONFIG_DIR=os.path.dirname(self.world.team_root))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return sock
+
+    def test_a_400_digit_integer_startedat_or_updatedat_reads_as_a_sessions_format_mismatch(self):
+        for field in ('startedAt', 'updatedAt'):
+            with self.subTest(field=field):
+                pid = self.world.live_process()
+                path = self.world.session(self.world.team_root,
+                                          self.world.record(pid, 'probe-t_8', **{field: HUGE}))
+                result = self.run_who()
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(table(result.stdout)[('team', str(pid))]['STATE'],
+                                 'unknown (sessions format: %s)' % VERSION)
+                result = self.run_who('--prefix', 'probe-t')
+                self.assertEqual((result.returncode, self.names(result.stdout)),
+                                 (0, ['probe-t_3', 'probe-t_4']))
+                result = self.run_who('--address', 'probe-t_8')
+                self.assertEqual((result.returncode, result.stdout), (1, ''))
+                self.assertIn('no live session for probe-t_8', result.stderr)
+                os.unlink(path)
+
+    def test_a_400_digit_integer_in_a_roster_entry_leaves_it_out_with_the_warning(self):
+        pid = self.world.live_process()
+        self.register('probe-t_5', pid)
+        name = '%s-%d.json' % (dio.config_key(os.path.dirname(self.world.team_root)), pid)
+        path = os.path.join(self.world.state, 'roster', name)
+        with open(path, encoding='utf-8') as f:
+            entry = json.load(f)
+        for case, crafted in (('as its pid', dict(entry, pid=HUGE)),
+                              ('as an added startedAt', dict(entry, startedAt=HUGE))):
+            with self.subTest(case=case):
+                with open(path, 'w', encoding='utf-8') as f:
+                    json.dump(crafted, f)
+                result = self.run_who()
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertNotIn(('team', str(pid)), table(result.stdout))
+                self.assertIn("ignored roster entry %s: not in dio register's format" % name,
+                              result.stderr)
+                result = self.run_who('--prefix', 'probe-t')
+                self.assertEqual((result.returncode, self.names(result.stdout)),
+                                 (0, ['probe-t_3', 'probe-t_4']))
+                result = self.run_who('--address', 'probe-t_5')
+                self.assertEqual((result.returncode, result.stdout), (1, ''))
+
+    def test_a_name_ending_in_a_5000_digit_n_gives_its_row_from_a_sessions_file(self):
+        pid = self.world.live_process()
+        self.world.session(self.world.team_root, self.world.record(pid, LONG_N))
+        sock = self.world.socket_of(pid)
+        result = self.run_who()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        row = table(result.stdout)[('team', str(pid))]
+        self.assertEqual((row['NAME'], row['SOCKET'], row['STATE']), (LONG_N, sock, 'live'))
+        result = self.run_who('--prefix', 'probe-t')
+        self.assertEqual((result.returncode, self.names(result.stdout)),
+                         (0, ['probe-t_3', 'probe-t_4', LONG_N]))
+        result = self.run_who('--address', LONG_N)
+        self.assertEqual((result.returncode, result.stdout), (0, sock + '\n'))
+        result = self.run_who('--address', 'probe-t')
+        self.assertEqual((result.returncode, result.stdout.splitlines()[-1]), (1, 'ambiguous: 3 live'))
+        result = self.run_who('--address', 'probe-t', '--highest')
+        self.assertEqual((result.returncode, result.stdout), (0, sock + '\n'))
+
+    def test_a_name_ending_in_a_5000_digit_n_gives_its_fallback_row_from_a_roster_entry(self):
+        pid = self.world.live_process()
+        sock = self.register(LONG_N, pid)
+        result = self.run_who()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        row = table(result.stdout)[('team', str(pid))]
+        self.assertEqual((row['NAME'], row['SOCKET'], row['STATE']),
+                         (LONG_N, sock, 'live  fallback: register'))
+        result = self.run_who('--prefix', 'probe-t')
+        self.assertEqual((result.returncode, self.names(result.stdout)),
+                         (0, ['probe-t_3', 'probe-t_4', LONG_N]))
+        self.assertTrue(result.stdout.splitlines()[-1].endswith('live  fallback: register'))
+        result = self.run_who('--address', LONG_N)
+        self.assertEqual((result.returncode, result.stdout), (0, sock + '  fallback: register\n'))
+        result = self.run_who('--address', 'probe-t')
+        self.assertEqual((result.returncode, result.stdout.splitlines()[-1]), (1, 'ambiguous: 3 live'))
+        result = self.run_who('--address', 'probe-t', '--highest')
+        self.assertEqual((result.returncode, result.stdout), (0, sock + '  fallback: register\n'))
+
+
 class DefaultsTests(Base):
     def test_the_defaults_are_the_plans_paths(self):
         home = self.world.home

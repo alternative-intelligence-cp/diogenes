@@ -210,7 +210,15 @@ def _text(value):
 
 
 def _number(value):
-    return type(value) in (int, float) and math.isfinite(value) and value >= 0
+    """A finite number, not negative, that a float can hold. math.isfinite converts an int to a
+    float, and an int too large for one, such as a 400-digit integer, raises OverflowError: it
+    does not count."""
+    if type(value) not in (int, float):
+        return False
+    try:
+        return math.isfinite(value) and value >= 0
+    except OverflowError:
+        return False
 
 
 def _digits(value):
@@ -232,8 +240,9 @@ def parse_session(raw, stem):
     process start time in clock ticks after boot, field 22 of /proc/<pid>/stat);
     messagingSocketPath, an absolute path. Optional, and checked when present:
     sessionId and cwd (strings), name (text or null), status (busy, shell, idle or
-    waiting), startedAt and updatedAt (numbers), version (text). Other keys are
-    ignored. Raises Mismatch, carrying the file's own version when it could be read.
+    waiting), startedAt and updatedAt (finite numbers, not negative, that a float can
+    hold), version (text). Other keys are ignored. Raises Mismatch, carrying the file's own
+    version when it could be read.
     """
     try:
         record = strict_json(raw)
@@ -575,11 +584,17 @@ class Row:
 
 
 def trailing_key(row):
-    """Sort key: the name's trailing _N as a number; names without one first, then by name."""
+    """Sort key: the name's trailing _N in numeric order; names without one first, then by name.
+
+    N is compared as text: fewer digits after its leading zeros first, then digit by digit,
+    which is numeric order at any length. int() would refuse an N of more than 4300 digits
+    (Python's default limit), and a name ending in one is still text that dio register accepts.
+    """
     match = TRAILING_N.fullmatch(row.name or '')
     if match:
-        return (1, int(match.group(2)), row.name, row.account)
-    return (0, 0, row.name or '', row.account)
+        digits = match.group(2).lstrip('0')
+        return (1, (len(digits), digits), row.name, row.account)
+    return (0, (0, ''), row.name or '', row.account)
 
 
 def checked_state(cache, config_dir, pid, proc_start, socket, status):
