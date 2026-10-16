@@ -1,0 +1,134 @@
+DX-13, the 10-minute leg — run by the Team seat (Ailp-team_5) on 2026-10-16, 00:52:02 to 01:02:44 EDT
+=====================================================================================================
+(Revised 2026-10-16 after diogenes_0's six corrections; the raw record below is unchanged, byte for byte.)
+
+WHAT: DX-13's 10-minute leg ("A background Bash `until` loop wakes the session when it exits"), which MIN.md
+step 2 runs before `dio watch` ships, and which the author's steps (B2) give to the seat with no author step.
+diogenes_0 had no objection to the method, with four points for the filing (its message arrived 2026-10-16
+00:01:13 EDT), and management_0 allowed it before 03:00 (its message arrived 00:02:09). Evidence is quoted from
+the raw record at the end of this file, from `ps`, and from the session transcript's metadata.
+
+HOW THE RUN DIFFERS FROM DX-13's STEPS (meta/EXPERIMENTS.md:137), each with its reason:
+1. The probe is the working Team manager session, Ailp-team_5 (pid 800537, session
+   b0982a56-a9c5-4b99-b0d0-e60a75b8b05c, Claude Code 2.1.301 by its own sessions file's `version`, the
+   `~/.claude-team` config dir, bypass permissions), not a probe session.
+   Reason: B2 gives this leg to the seat, with no author step, so the seat is the probe. Its cost is therefore
+   a working seat's (context at 46–47 % of 1 M), not a fresh small probe's.
+2. The go file is /home/randy/Team/TMP/dx13/go, not ~/.cache/dx13/go.
+   Reason: the Team seat writes only in /home/randy/Team (Team/CLAUDE.md; the standing brief §2).
+3. A detached timer touched go, not a hand: `setsid --fork sh -c 'sleep 600; date "+timer clock …" >> record.txt;
+   touch /home/randy/Team/TMP/dx13/go'`.
+   Reason: no author step. What makes it no task of the Claude session is its parent: pid 18467,
+   `systemd --user`, where every task the session runs has the Claude process (pid 800537) as its parent. A
+   session id alone would not show that, because the Bash tool runs each command in a session of its own: the
+   loop task (sid 2282422) and the setup shell (sid 2282830) differ from the Claude process's (sid 28467) too.
+   And the turn began 25.65 s after the timer's touch, at the loop's exit, with no transcript entry at the
+   timer's own end.
+4. The loop is DX-13's own command with the Team path, plus one line after `echo WAKE` that prints the loop's
+   exit time: `until [ -f /home/randy/Team/TMP/dx13/go ]; do sleep 30; done; echo WAKE; date '+loop exit …'`,
+   run as a Bash-tool background task (`run_in_background`). Reason: to time the exit.
+5. The cost comes from named sources, not "status-line cost before and after":
+   - the wake turn's recorded API request: `.message.usage` of its assistant entries in the session
+     transcript, ~/.claude-team/projects/-home-randy-Team/b0982a56-a9c5-4b99-b0d0-e60a75b8b05c.jsonl, matched
+     to its `api-request` entry by `requestRef` and `id`;
+   - the Team status line's usage file, /home/randy/Team/CONFIG/usage-latest.json,
+     `.rate_limits.five_hour.used_percentage` and `.rate_limits.seven_day.used_percentage` (whole percents);
+   - the Team status line's context file, /home/randy/Team/CONFIG/context/<session>.json,
+     `.context_window.total_input_tokens` and `.used_percentage`.
+   The Team status line's files carry no `cost.total_cost_usd`.
+6. DX-13's sqlite polling leg is moot for 0.0-min, which has no database (MIN.md, "Left to 0.1": the SQLite store).
+7. The session was idle 9 min 49.6 s, not a full 10 minutes. The timer counted 600 s from its start
+   (00:52:09.949), and the setup turn went on for 36.1 s after that, to 00:52:46.003. The window adds up
+   (diogenes_0's arithmetic): 600.008 − 36.054 + 0.001 + 25.654 + 0.010 = 589.619 s. Those terms are, in order:
+   the timer's start to its clock line; its start to the setup turn's end; the clock line to go's mtime; the
+   touch to the loop's exit line; the exit line to the notification's enqueue.
+
+EVIDENCE
+- go absent at the loop's start: "go present at setup? no" (00:52:02.117) and "go present after timer start? no"
+  (just before 00:52:21.066), with the directory listing at setup.
+- The loop's process: pid 2282422, sid 2282422, pgid 2282422, parent 800537 (this Claude session), started
+  00:52:05 — a task of the session.
+- The timer's process, by `ps -eo pid,sid,pgid,ppid,lstart,args`:
+    2282834 2282834 2282834   18467 Fri Oct 16 00:52:09 2026 sh -c sleep 600; date "+timer clock …" >> …/record.txt; touch /home/randy/Team/TMP/dx13/go
+    2282837 2282834 2282834 2282834 Fri Oct 16 00:52:09 2026 sleep 600
+  Its parent, pid 18467, is `/usr/lib/systemd/systemd --user`, not the Claude session (pid 800537). That,
+  and not its session id, shows it was no task of the session (deviation 3).
+- The timer's clock line: "timer clock 2026-10-16T01:02:09.957313591-0400". go's mtime: 01:02:09.958413609.
+- The loop's output (task bv3n5sym1): "WAKE", then "loop exit 2026-10-16T01:02:35.612058481-0400", exit code 0.
+  That is 25.65 s after the touch, inside the 30 s poll.
+- The new turn, from the transcript (EDT):
+    01:02:35.622  queue-operation enqueue: the task-notification for bv3n5sym1
+    01:02:35.671  user prompt: the task-notification (the turn starts)
+    01:02:35.746  api-request (querySource repl_main_thread), id 3d891d96…
+    01:02:35.978  api-request (querySource repl_main_thread), id 59547072…
+    01:02:39.562  the turn's first assistant output, requestRef 59547072…
+    01:02:44.571  the turn's first `date`: "new turn first date 2026-10-16T01:02:44.571499247-0400"
+- Every transcript entry in the window, so that "nothing else woke it" is shown:
+    00:52:46.003  system turn_duration — the end of the setup turn
+    00:55:53.028  system away_summary — a harness summary entry. No user, queue or assistant entry follows it,
+                  and the transcript logs no api-request for it (none for any of its three away_summary entries,
+                  diogenes_0), so whether it made a model call is not shown. It started no turn.
+    01:02:35.622  the notification above — the next turn start
+  No other entry lies between 00:52:46.003 and 01:02:35.622, and no untimed line (diogenes_0, which read the
+  same transcript's metadata). No peer message, prompt or subagent event arrived.
+- Cost of the wake. The wake turn logged two api-request entries before its first output, at 01:02:35.746 and
+  01:02:35.978. Its three assistant entries all carry the second one's requestRef, so the usage they record is
+  the second request's: input_tokens 4, cache_creation_input_tokens 851, cache_read_input_tokens 466 857,
+  output_tokens 729 (169 of them thinking). The first request has no assistant entry and no recorded usage, so
+  its cost is not known. The pair is not peculiar to the wake: diogenes_0 counts it at 4 of the 14 prompts that
+  start a turn in this transcript.
+- The cache. Every api-request asks for ttl "1h" at its three cache breakpoints (two in `system`, one in
+  `messages`, in the entry's `cacheControl`): diogenes_0 over all 194 api-request entries in the transcript,
+  and checked here on the wake turn's first three api-request entries (01:02:35.746, 01:02:35.978 and
+  01:02:44.762). Yet the usage labels every cache write in the session `ephemeral_5m`,
+  never `ephemeral_1h`. The wake read the cache after 9 min 49.6 s idle: by diogenes_0's reading it read the
+  last 1 450 tokens written, at 00:52:40, 9 min 56 s before. That fits the requested hour, not the label. Even if the
+  away_summary refreshed the cache at 00:55:53, the wake's first request came 6 min 43 s later, past a
+  5-minute life.
+- Usage meter, whole percents: five-hour 41 % → 41 %, week 48 % → 48 % (usage-latest.json written 04:52:00Z and
+  05:02:40Z).
+- Context file: total_input_tokens 457 819 (46 %) at 04:51:59Z → 467 712 (47 %) at 05:02:40Z. The rise includes
+  the setup turn's own calls after the first reading, not the wake alone.
+- Where the evidence lives: TMP/dx13 was removed at 01:04:15 EDT, by the call that appended the raw record
+  below and checked its sha256 (TMP's mtime reads 01:04:15.43, just after this file's 01:04:15.42). So the raw
+  record and go's mtime survive only in this file.
+
+RESULT (10-minute leg)
+- An idle Claude Code session (2.1.301, Team config dir, bypass permissions) was woken by its own background
+  Bash `until` loop's exit, once. The task-notification was enqueued 0.010 s after the loop's exit line, and the
+  turn began 0.049 s after the enqueue (0.059 s after the exit line). Nothing else woke it during the
+  9 min 49.6 s idle.
+- One wake cost one model turn. Its recorded request (the second of two) read about 467 k cached tokens and
+  wrote 0.85 k for this working seat; the first request's cost is not recorded. A fresh small probe would read
+  far less.
+- Not measured, and left for the gate (B3):
+  - the 2-hour and overnight legs, so any lifetime cap of a background loop;
+  - the wake's cost past the cache's life. Past an hour, expect the wake to write the context again, about
+    467 k tokens for this seat. The 2-hour leg should record its wake request's cache_read and cache_creation;
+  - the polling leg's shape for `dio wait` (moot for 0.0-min).
+
+RAW RECORD, /home/randy/Team/TMP/dx13/record.txt, byte for byte below this line
+----------------------------------------------------------------------------------
+DX-13 10-minute leg, run by the seat (Ailp-team_5, pid 800537, session b0982a56-a9c5-4b99-b0d0-e60a75b8b05c) on 2026-10-16
+setup 2026-10-16T00:52:02.116990908-0400
+go present at setup? no
+ls -la /home/randy/Team/TMP/dx13:
+total 12
+drwxrwxr-x 2 randy randy 4096 Oct 16 00:52 .
+drwxrwxr-x 3 randy randy 4096 Oct 16 00:52 ..
+-rw-rw-r-- 1 randy randy  222 Oct 16 00:52 record.txt
+before: usage-latest.json {"written_at_iso":"2026-10-16T04:52:00Z","five":41,"week":48}
+before: CONFIG/context/b0982a56-a9c5-4b99-b0d0-e60a75b8b05c.json {"written_at_iso":"2026-10-16T04:51:59Z","total_input_tokens":457819,"total_output_tokens":8,"used_percentage":46}
+timer start 2026-10-16T00:52:09.948839921-0400
+timer process, by ps -o pid,sid,pgid,ppid,lstart,args (the shell that sleeps, and its sleep):
+2282422 2282422 2282422  800537 Fri Oct 16 00:52:05 2026 /bin/bash -c source /home/randy/.claude-team/shell-snapshots/snapshot-bash-1792118073259-95a7t8.sh 2>/dev/null || true && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'until [ -f /home/randy/Team/TMP/dx13/go ]; do sleep 30; done; echo WAKE; date '"'"'+loop exit %Y-%m-%dT%H:%M:%S.%N%z'"'"'' < /dev/null && pwd -P >| /tmp/claude-3a6a-cwd
+2282830 2282830 2282830  800537 Fri Oct 16 00:52:09 2026 /bin/bash -c source /home/randy/.claude-team/shell-snapshots/snapshot-bash-1792118073259-95a7t8.sh 2>/dev/null || true && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'bash /tmp/claude-1000/-home-randy-Team/b0982a56-a9c5-4b99-b0d0-e60a75b8b05c/scratchpad/dx13-timer.sh; echo "---"; echo "loop task, by ps (its shell runs the until):"; ps -eo pid,sid,pgid,ppid,lstart,args | /usr/bin/grep -F '"'"'TMP/dx13/go ]'"'"' | /usr/bin/grep -v grep | cut -c1-200; echo "this Claude session: pid 800537 sid $(ps -o sid= -p 800537)"' < /dev/null && pwd -P >| /tmp/claude-9a63-cwd
+2282834 2282834 2282834   18467 Fri Oct 16 00:52:09 2026 sh -c sleep 600; date "+timer clock %Y-%m-%dT%H:%M:%S.%N%z" >> /home/randy/Team/TMP/dx13/record.txt; touch /home/randy/Team/TMP/dx13/go
+2282837 2282834 2282834 2282834 Fri Oct 16 00:52:09 2026 sleep 600
+this setup shell: pid 2282831 sid 2282830 pgid 2282831
+timer's parent pid 18467:   18467 systemd         /usr/lib/systemd/systemd --user
+loop task: pid 2282422 sid 2282422 pgid 2282422 ppid 800537 (this Claude session), started 00:52:05, Bash tool run_in_background task bv3n5sym1
+this Claude session: pid 800537 sid 28467
+go present after timer start? no
+idle from the end of this turn; last tool call 2026-10-16T00:52:21.065836438-0400
+timer clock 2026-10-16T01:02:09.957313591-0400
