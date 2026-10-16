@@ -8,8 +8,8 @@ Who holds each role in this repository. `dio who --address <role>` resolves a ro
 
 ```text
 team-seat = Ailp-team_8
-merger = diogenes_0
-poster = management_1, diogenes_0
+merger = diogenes_1
+poster = management_1, diogenes_1
 ```
 
 What each role is:
