@@ -10,8 +10,11 @@ import contextlib
 import io
 import json
 import os
+import shutil
 import stat
+import subprocess
 import unittest
+from datetime import datetime, timedelta
 from unittest import mock
 
 import fixtures
@@ -111,6 +114,26 @@ class ReaderTests(Base):
         patcher.stop()
         self.assertIn('%d.json' % self.world.busy, [path for path, _, _ in calls])
         self.assertEqual([path for path, _, _ in calls if '.key' in path], [])
+
+    def test_entries_that_do_not_match_are_named_by_no_system_call_that_takes_a_path(self):
+        # Never opened, stat'ed or named at all: strace's %file class traces every system call
+        # that takes a path, the stat family (newfstatat, statx and the rest) included.
+        self.assertIsNotNone(shutil.which('strace'), 'strace is required')
+        trace = os.path.join(self.world.base, 'file.trace')
+        result = subprocess.run(['strace', '-f', '-e', 'trace=%file', '-o', trace, DIO, 'who']
+                                + self.world.who_flags(), env=self.world.env(),
+                                capture_output=True, text=True, timeout=120)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with open(trace, encoding='utf-8', errors='replace') as f:
+            lines = f.read().splitlines()
+
+        def naming(name):
+            return [line for line in lines if '"%s"' % name in line or '/%s"' % name in line]
+        # The trace is not blind: it holds a matching name's open and its socket's stat.
+        self.assertTrue(naming('%d.json' % self.world.busy))
+        self.assertTrue([line for line in naming('%d.sock' % self.world.busy) if 'stat' in line])
+        for name in JUNK + ('123.key', SECOND_CANARY):
+            self.assertEqual(naming(name), [], name)
 
     def test_matches_are_opened_with_o_nofollow_relative_to_the_listed_directory(self):
         calls, patcher = self.recording_open()
@@ -322,6 +345,18 @@ class ProcessCheckTests(Base):
         result = self.world.run('who', '--address', 'probe-t_8', *flags)
         self.assertEqual((result.returncode, result.stdout), (0, sock + '\n'))
 
+    @unittest.skipIf(os.geteuid() == 0, 'root can search a mode-000 directory')
+    def test_a_socket_dio_cannot_examine_reads_no_process_check_and_starts_no_grace(self):
+        locked = self.world.make('locked')
+        pid = self.world.live_process()
+        self.world.session(self.world.team_root, self.world.record(
+            pid, 'probe-t_8', sock=os.path.join(locked, '%d.sock' % pid)))
+        os.chmod(locked, 0)  # the pid and start time pass; the socket's stat gets EACCES
+        self.addCleanup(os.chmod, locked, 0o700)
+        self.assertEqual(self.state(pid), 'unknown (no process check: EACCES)')
+        self.assertNotIn(dio.GraceCache.entry_name(os.path.dirname(self.world.team_root), pid),
+                         self.world.cache_files())
+
     def test_the_account_is_the_directory_read(self):
         status, out, err = self.main('who', '--sessions-root', 'team=' + self.world.max_root,
                                      '--sessions-root', 'max=' + self.world.team_root,
@@ -344,12 +379,33 @@ class GraceTests(Base):
         return dead
 
     def test_a_failed_check_reads_checking_until_60_seconds_then_gone(self):
-        dead = self.dead_world()
-        self.assertEqual(self.state(dead), dio.CHECKING)
+        dead = self.dead_world()  # the texts are M6's, so they are written out, not dio.CHECKING
+        self.assertEqual(self.state(dead), 'unknown (checking)')
         self.clock.advance(59.999999)
-        self.assertEqual(self.state(dead), dio.CHECKING)
+        self.assertEqual(self.state(dead), 'unknown (checking)')
         self.clock.advance(0.000001)
-        self.assertEqual(self.state(dead), dio.GONE)
+        self.assertEqual(self.state(dead), 'gone')
+
+    def test_the_built_dio_prints_m6s_texts_unknown_checking_then_gone(self):
+        # M6 reads these two texts off a terminal, so they are pinned as the built dio prints
+        # them on the real clock. Before the second run, the entry's times move back 61 s.
+        dead = self.dead_world()
+        flags = ['--sessions-root', 'team=' + self.world.team_root, '--state-root', self.world.state]
+        result = self.world.run('who', *flags)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(table(result.stdout)[('team', str(dead))]['STATE'], 'unknown (checking)')
+        path = os.path.join(self.world.state, 'cache',
+                            dio.GraceCache.entry_name(os.path.dirname(self.world.team_root), dead))
+        with open(path, encoding='utf-8') as f:
+            entry = json.load(f)
+        for key in ('firstFailedAt', 'goneAt'):
+            moment = datetime.strptime(entry[key], '%Y-%m-%dT%H:%M:%S.%fZ') - timedelta(seconds=61)
+            entry[key] = moment.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(entry, f)
+        result = self.world.run('who', *flags)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(table(result.stdout)[('team', str(dead))]['STATE'], 'gone')
 
     def test_the_entry_holds_absolute_utc_times_with_the_grace_beside_them(self):
         dead = self.dead_world()
@@ -513,6 +569,27 @@ class OutputTests(Base):
     def test_address_of_a_role_with_two_holders_resolves_the_one_live(self):
         self.assertEqual(self.resolve('poster')[:2], (0, self.world.socket_of(self.world.max_live) + '\n'))
 
+    def test_address_tries_a_role_before_an_exact_name_equal_to_it(self):
+        pid = self.world.live_process()  # a live session named team-seat, the role's own name
+        self.world.session(self.world.team_root, self.world.record(pid, 'team-seat'))
+        self.assertEqual(self.resolve('team-seat'), (0, self.world.socket_of(self.world.busy) + '\n', ''))
+
+    def test_address_tries_an_exact_name_before_a_bare_prefix(self):
+        pid = self.world.live_process()  # live as probe-t, beside the live probe-t_3 and probe-t_4
+        self.world.session(self.world.team_root, self.world.record(pid, 'probe-t'))
+        self.assertEqual(self.resolve('probe-t'), (0, self.world.socket_of(pid) + '\n', ''))
+
+    def test_an_exact_name_live_twice_is_ambiguous_even_with_highest(self):
+        pid = self.world.live_process()  # a second live probe-t_4, on the other account
+        self.world.session(self.world.max_root, self.world.record(pid, 'probe-t_4'))
+        for extra in ((), ('--highest',)):
+            status, out, err = self.resolve('probe-t_4', *extra)
+            self.assertEqual(status, 1, extra)
+            self.assertEqual(out.splitlines(), [
+                '%s  probe-t_4  max' % self.world.socket_of(pid),
+                '%s  probe-t_4  team' % self.world.socket_of(self.world.idle),
+                'ambiguous: 2 live'], extra)
+
     def test_a_role_with_several_live_holders_is_ambiguous_even_with_highest(self):
         with open(self.world.roles, 'w') as f:
             f.write('```\npair = probe-t_3, probe-t_4\n```\n')
@@ -622,6 +699,20 @@ class RegisterTests(Base):
         self.assertEqual(status, 1)
         self.assertIn('no socket at', err)
 
+    def test_the_zone_directories_dio_makes_have_mode_0700(self):
+        umask = os.umask(0)  # so each mode is exactly the one dio asks mkdir for
+        try:
+            self.main('who', '--sessions-root', 'team=' + self.world.team_root,
+                      '--state-root', self.world.state)
+            status, out, err = self.register('probe-t_5')
+        finally:
+            os.umask(umask)
+        self.assertEqual(status, 0, err)
+        for leaf in ('cache', 'roster'):
+            mode = os.lstat(os.path.join(self.world.state, leaf)).st_mode
+            self.assertTrue(stat.S_ISDIR(mode), leaf)
+            self.assertEqual(stat.S_IMODE(mode), 0o700, leaf)
+
     def test_register_refuses_a_name_with_control_characters(self):
         self.assertEqual(self.register('probe\nt_5')[0], 2)
 
@@ -671,10 +762,10 @@ class RegisterTests(Base):
         self.world.children[0].stdin.close()
         self.world.children[0].wait()
         self.assertEqual(table(self.who()[1])[('team', str(self.pid))]['STATE'],
-                         dio.CHECKING + '  fallback: register')
+                         'unknown (checking)  fallback: register')
         self.clock.advance(60)
         self.assertEqual(table(self.who()[1])[('team', str(self.pid))]['STATE'],
-                         dio.GONE + '  fallback: register')
+                         'gone  fallback: register')
 
     def test_a_roster_entry_not_in_the_format_is_ignored_with_a_warning(self):
         self.register('probe-t_5')
