@@ -1,6 +1,6 @@
 # tests: the tests that persist
 
-This is where the tests that are meant to persist go. Today they cover `src/dio`, build step 1 of cycle 0.0-min ([`../meta/roadmap/0.0/MIN.md`](../meta/roadmap/0.0/MIN.md)): `dio who`, `dio register`, their fixtures, and gate row M7a's strace test. They use `unittest` from the standard library.
+This is where the tests that are meant to persist go. Today they cover `src/dio`, build steps 1 and 3 of cycle 0.0-min ([`../meta/roadmap/0.0/MIN.md`](../meta/roadmap/0.0/MIN.md)): `dio who`, `dio register`, their fixtures, gate row M7a's strace test, and `dio watch`. They use `unittest` from the standard library.
 
 ## The command
 
@@ -10,9 +10,9 @@ From the repository root:
 TMPDIR=<scratch dir> /usr/bin/python3 -I -B -m unittest discover -s tests -v
 ```
 
-- **`TMPDIR` must name an existing scratch directory, and the tests refuse to run without it.** Every fixture, grace cache, roster and trace is made by `tempfile` under it, and removed when its test (or, for M7a, its test class) ends. Each `dio` run the tests start gets `HOME` set inside that same temporary tree, and none of the running session's `CLAUDE_*` variables, so neither a flag nor a default can reach a real sessions directory or the real `~/.local/share/diogenes/`. No test hard-codes a scratch, cache, roster or trace path. One test reads this repository's own `meta/ROLES.md` on purpose, to show that it is the default role file.
+- **`TMPDIR` must name an existing scratch directory, and the tests refuse to run without it.** Every fixture, grace cache, roster, watched directory and trace is made by `tempfile` under it, and removed when its test (or, for M7a, its test class) ends. Each `dio` run the tests start gets `HOME` set inside that same temporary tree, and none of the running session's `CLAUDE_*` variables, so neither a flag nor a default can reach a real sessions directory or the real `~/.local/share/diogenes/`. No test watches a directory outside its temporary tree. No test hard-codes a scratch, cache, roster or trace path. One test reads this repository's own `meta/ROLES.md` on purpose, to show that it is the default role file.
 - `-I -B`: isolated mode, and no bytecode, so no `__pycache__` appears in the repository.
-- The tests need Linux's `/proc` and `strace` (for M7a, and for the reader test that traces every system call taking a path). No test sleeps: the grace is tested with an injected clock, and once through the built `dio` on the real clock, with the cache entry's times moved back.
+- The tests need Linux's `/proc` and `strace` (for M7a, for the reader test that traces every system call taking a path, and for `dio watch`'s strace case). No test sleeps: the grace is tested with an injected clock, and once through the built `dio` on the real clock, with the cache entry's times moved back. `dio watch` runs on `fixtures.WatchClock`, whose sleep only moves its clocks on and drops the files a test sets, and `dio`'s real sleep is patched to fail in every case that runs `dio watch` in-process. The built `dio watch` runs only where it exits at once: its refusals and its help.
 
 Gate row M7a alone, in either form:
 
@@ -61,6 +61,8 @@ A further case checks that the detector flags `.key` paths in synthetic trace li
 
 A live entry is a child process the test owns, blocked reading its stdin, with a real Unix socket file bound in the temporary tree. A socket's address may hold at most 108 bytes, and a long `TMPDIR` passes that, so `World.listen` binds each socket by its short name from inside its directory and restores the working directory at once. The socket file still sits at its full path, which `dio` only stats, and stat has no such limit. A dead pid is a child that has exited and been reaped. Linux hands out pids in rising order, so it is not reused while the tests run unless the pid counter wraps.
 
+`WatchClock` is `dio watch`'s injected clocks: a real clock that starts at 2026-10-16T07:00:00Z, a monotonic one, and a sleep that records the seconds asked for, moves both clocks on by them, and then runs the actions set for the end of that sleep (`at(n, action)`, counting sleeps from 1). A test drops a file in such an action, with its mtime set from the clock, so a watch sees it arrive.
+
 ## What each file covers
 
 - `test_dio.py`:
@@ -76,3 +78,13 @@ A live entry is a child process the test owns, blocked reading its stdin, with a
   - `EntryPointTests`: `src/dio` runs through its shebang in isolated mode (a module planted on `PYTHONPATH` is never imported), and writes no bytecode under `src/`.
   - `StaticTests`: `src/dio` holds no `.key` literal, `src/README.md`'s "What `dio` opens, all told" names the `.tmp-<pid>-<12 hex>` files and what `dio` does with them, and no file in `src/` or `tests/` holds a path under the Team tree.
 - `test_m7a_strace.py`: gate row M7a, as above.
+- `test_watch.py`, `dio watch` (`MIN.md` step 3), each case on an inbox in the temporary tree that holds files present at the start:
+  - `WakeTests`: a new regular file ends the watch with `WAKE <path>` and exit 0; a relative directory prints as an absolute path; files present at the start never wake it, with mtimes an hour before the start, at it and an hour after it, touched or replaced during the watch; a new file stamped 1 ms before the start wakes it; the 2-second margin, at its edge and 1 ns inside it; a new name with an hour-old mtime wakes it only once touched; only a regular file wakes it (not a symlink to one, a directory, a FIFO or a socket); the first of several is the earliest mtime, then the first name; a file in the last interval still wakes it; a name gone between the listing and its stat is skipped.
+  - `CapTests`: `REARM <dir>` and exit 1 at the cap; the defaults, every 60 s and a 3000 s cap; the last sleep cut to the cap; an `--every` longer than `--max`; one day for both; the cap on the monotonic clock, unmoved by a step of the real clock either way.
+  - `RefusalTests`: exit 2 for a missing directory, a regular file, a FIFO, a socket, a symlink to a directory and a directory it cannot read, each with its message; bad flags (0, negative, decimal, text, past 86400, non-ASCII digits, empty; no `DIR`, an unknown flag, two `DIR`s); the built `dio` refusing at once, with no traceback.
+  - `DuringTests`: exit 2 when the directory is removed, replaced by another, or made unreadable during the watch.
+  - `OneLineTests`: a name with a newline prints on one line, escaped; a byte that is not UTF-8, a backslash, U+2028 and a C1 control are escaped; an ordinary path prints as it is.
+  - `NeverOpenedTests`: in-process, `dio watch` opens only the directory, with `O_DIRECTORY` and `O_NOFOLLOW`, stats only the names new since the start, each relative to the directory without following, and never stats a file present at the start.
+  - `StraceTests`: `dio watch` in a child process under `strace -e trace=%file`, whose injected sleep runs a second, untraced process that drops a FIFO, a symlink to a canary, a directory, a socket and then a regular file: the trace opens only the directory, writes nothing, names no file present at the start or the canary, and stats each new name with `AT_SYMLINK_NOFOLLOW`.
+  - `GapTests`: the re-arm gap. A file dropped between two watches, one dropped after the seat's reading but before the next listing, and a second file within one poll of the first wake no later watch, and the seat's rule (src/README.md) reads each of them.
+  - `HelpTests`: `dio watch --help` and `src/README.md` say the default cap is provisional and that the time past 10 minutes is untested until the gate's 2-hour leg.
