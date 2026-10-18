@@ -114,9 +114,25 @@ class WakeTests(WatchBase):
 
     def test_a_new_file_stamped_a_millisecond_before_the_start_wakes_it(self):
         # The kernel stamps mtimes from a clock that trails the one the start is read from, so
-        # a file made just after the start can carry an mtime up to a tick (1 ms here) before it.
+        # a file made just after the start can carry an mtime before it. This case stamps it 1 ms
+        # before; the runs on record reach 1.849 ms (src/README.md).
         self.clock.at(1, lambda: self.drop('new.md', self.start - 10 ** 6))
         self.assertEqual(self.watch(), self.wake('new.md'))
+
+    def test_the_start_lists_the_directory_before_it_reads_the_clock(self):
+        # Decision 15's order (D4v's finding 1). The clock's one reading drops a file, so the file
+        # lands between the listing and the reading: it is new, its mtime is the start, and the
+        # poll that comes at once reports it. A watch that read the clock first would have listed
+        # the file as present at the start, and would never report it.
+        readings = []
+
+        def reading_drops_a_file():
+            readings.append(self.clock.real)
+            self.drop('between.md', self.clock.real)
+            return self.clock.real
+        self.clock.real_ns = reading_drops_a_file
+        self.assertEqual(self.watch('--max', '300'), self.wake('between.md'))
+        self.assertEqual((readings, self.clock.sleeps), ([self.start], []))
 
     def test_the_margin_is_2_seconds_and_a_new_file_stamped_earlier_never_wakes_it(self):
         self.assertEqual(dio.MTIME_MARGIN_NS, 2 * SECOND)
@@ -349,6 +365,69 @@ class NeverOpenedTests(WatchBase):
                           if dir_fd is None and path.startswith(self.inbox)], [])
         self.assertNotIn(CANARY.decode().strip(), out + err)
 
+    def test_a_dangling_symlink_present_at_the_start_or_new_never_wakes_it_and_is_never_opened(self):
+        # D4v's finding 8. One dangling symlink is in the inbox at the start, with its own mtime
+        # an hour after the start; a new one lands at the first sleep, with its own mtime newer
+        # than the start. Neither wakes the watch, and the regular file two sleeps later does.
+        # Nothing is opened but the directory, nothing is read through a link, the link present
+        # at the start is never stat'ed, and the new one is stat'ed relative to the directory
+        # without following it. Neither target exists, and neither is ever named.
+        old_target = os.path.join(self.world.base, 'absent-old.md')
+        new_target = os.path.join(self.world.base, 'absent-new.md')
+        os.symlink(old_target, self.path('dangling-old.md'))
+        later = self.start + 3600 * SECOND
+        os.utime(self.path('dangling-old.md'), ns=(later, later), follow_symlinks=False)
+        opens, stats, reads, real_open, real_stat = [], [], [], os.open, os.stat
+        real_lstat, real_readlink, real_builtin_open = os.lstat, os.readlink, open
+
+        def record_open(path, flags, mode=0o777, *, dir_fd=None):
+            opens.append((path, flags, dir_fd))
+            return real_open(path, flags, mode, dir_fd=dir_fd)
+
+        def record_stat(path, *, dir_fd=None, follow_symlinks=True):
+            stats.append((path, dir_fd, follow_symlinks))
+            return real_stat(path, dir_fd=dir_fd, follow_symlinks=follow_symlinks)
+
+        def record_lstat(path, *, dir_fd=None):
+            stats.append((path, dir_fd, False))
+            return real_lstat(path, dir_fd=dir_fd)
+
+        def record_readlink(path, *, dir_fd=None):
+            reads.append(('readlink', path))
+            return real_readlink(path, dir_fd=dir_fd)
+
+        def record_builtin_open(file, *args, **kwargs):
+            reads.append(('open', file))
+            return real_builtin_open(file, *args, **kwargs)
+
+        def dangle():
+            os.symlink(new_target, self.path('dangling-new.md'))
+            now = self.clock.real_ns()
+            os.utime(self.path('dangling-new.md'), ns=(now, now), follow_symlinks=False)
+        self.clock.at(1, dangle)
+        self.clock.at(3, lambda: self.drop('regular.md'))
+        with mock.patch.object(dio.os, 'open', record_open), \
+                mock.patch.object(dio.os, 'stat', record_stat), \
+                mock.patch.object(dio.os, 'lstat', record_lstat), \
+                mock.patch.object(dio.os, 'readlink', record_readlink), \
+                mock.patch('builtins.open', record_builtin_open):
+            status, out, err = self.watch()
+        self.assertEqual((status, out, err), self.wake('regular.md'))
+        self.assertEqual(self.clock.sleeps, [60.0] * 3)  # the polls after sleeps 1 and 2 saw the link
+        self.assertEqual({path for path, _, _ in opens}, {self.inbox})
+        for path, flags, dir_fd in opens:
+            self.assertTrue(flags & os.O_DIRECTORY and flags & os.O_NOFOLLOW)
+        # (The test's own drop of regular.md goes through the patched open too, so only the
+        # links' and their targets' names are looked for.)
+        self.assertEqual([entry for entry in reads
+                          if 'dangling' in str(entry[1]) or 'absent-' in str(entry[1])], [])
+        relative = [(path, follow) for path, dir_fd, follow in stats if dir_fd is not None]
+        self.assertEqual({path for path, _ in relative}, {'dangling-new.md', 'regular.md'})
+        self.assertEqual([path for path, follow in relative if follow], [])
+        named = [path for path, _, _ in stats + [(p, None, None) for p, _, _ in opens]]
+        for absent in ('dangling-old.md', old_target, new_target):
+            self.assertEqual([path for path in named if path.endswith(os.path.basename(absent))], [])
+
 
 # dio watch in a child process: its sleep runs DROPPER in a second process, which strace does
 # not trace (no -f), so the trace holds dio's own system calls and not the dropper's.
@@ -384,6 +463,7 @@ directory, canary = sys.argv[1], sys.argv[2]
 if not os.path.lexists(os.path.join(directory, 'w-fifo')):  # the first sleep: no regular file
     os.mkfifo(os.path.join(directory, 'w-fifo'))
     os.symlink(canary, os.path.join(directory, 'w-link.md'))
+    os.symlink(os.path.join(directory, 'w-missing'), os.path.join(directory, 'w-dangling.md'))
     os.mkdir(os.path.join(directory, 'w-sub'))
     os.chdir(directory)
     socket.socket(socket.AF_UNIX).bind('w-sock')
@@ -398,6 +478,7 @@ class StraceTests(WatchBase):
     def test_under_strace_it_opens_only_the_directory_writes_nothing_and_stats_new_names_unfollowed(self):
         self.assertIsNotNone(shutil.which('strace'), 'strace is required')
         canary = self.world.write(self.world.base, 'w-canary.md', CANARY)
+        os.symlink(self.path('w-absent'), self.path('w-dangling-old.md'))  # present, dangling
         trace = os.path.join(self.world.base, 'watch.trace')
         command = ['strace', '-e', 'trace=%file', '-o', trace, sys.executable, '-I', '-B', '-c', HELPER,
                    os.path.dirname(os.path.abspath(fixtures.__file__)), self.inbox, DROPPER, canary]
@@ -420,9 +501,9 @@ class StraceTests(WatchBase):
                   or CALL.match(line).group(1) in ('unlink', 'unlinkat', 'rename', 'renameat',
                                                    'renameat2', 'mkdir', 'mkdirat', 'link', 'linkat')]
         self.assertEqual(writes, [])
-        for name in self.PRESENT:  # present at the start: named by no system call at all
-            self.assertEqual(calls(name), [], name)
-        for name in ('w-fifo', 'w-link.md', 'w-sub', 'w-sock', 'w-regular.md'):
+        for name in list(self.PRESENT) + ['w-dangling-old.md', 'w-absent', 'w-missing']:
+            self.assertEqual(calls(name), [], name)  # present at the start, or a link's target
+        for name in ('w-fifo', 'w-link.md', 'w-dangling.md', 'w-sub', 'w-sock', 'w-regular.md'):
             named = calls(name)
             self.assertTrue(named, name)
             for line in named:
@@ -472,6 +553,30 @@ class GapTests(WatchBase):
         self.assertEqual(self.watch('--max', '300'), self.rearm())
         self.assertEqual(self.seats_rule(reading), ['one.md', 'two.md'])
 
+    def test_a_step_back_of_the_real_clock_hides_a_later_file_from_the_watch_and_the_seats_rule(self):
+        # D4v's finding 6 (src/README.md, "A step back of the real clock"). An hour into the
+        # past at the first sleep: the file that lands then carries an mtime before the start
+        # less 2 s, so the watch ends at its cap, and the seat's rule, whose reading was taken
+        # before the step, misses it too. After a step back of only 2 s, a minute into the
+        # watch, a file that lands then still wakes it, and the rule reads it.
+        reading = self.clock.real_ns()  # the seat reads the clock, then arms
+
+        def step_back_then_drop():
+            self.clock.real -= 3600 * SECOND
+            self.drop('hidden.md')
+        self.clock.at(1, step_back_then_drop)
+        self.assertEqual(self.watch('--max', '300'), self.rearm())
+        self.assertEqual(self.seats_rule(reading), [])
+        self.clock = WatchClock()
+        reading = self.clock.real_ns()
+
+        def small_step_back_then_drop():
+            self.clock.real -= 2 * SECOND
+            self.drop('seen.md')
+        self.clock.at(1, small_step_back_then_drop)
+        self.assertEqual(self.watch('--max', '300'), self.wake('seen.md'))
+        self.assertEqual(self.seats_rule(reading), ['seen.md'])
+
 
 class HelpTests(unittest.TestCase):
     def test_the_help_says_the_default_cap_is_provisional_and_the_time_past_10_minutes_untested(self):
@@ -488,6 +593,27 @@ class HelpTests(unittest.TestCase):
             text = ' '.join(f.read().split()).lower()
         self.assertIn(UNTESTED.lower(), text)
         self.assertIn('provisional', text)
+
+    @staticmethod
+    def readme():
+        with open(os.path.join(REPOSITORY, 'src', 'README.md'), encoding='utf-8') as f:
+            return ' '.join(f.read().split())
+
+    def test_the_readme_sets_the_margin_against_the_worst_lag_on_record_and_names_its_runs(self):
+        # D4v's finding 5: 2 s against 1.849 ms, D4v's worst, is about 1,080 times.
+        text = self.readme()
+        self.assertEqual(round(2 / 1.849e-3, -1), 1080)
+        self.assertIn('2 s is about 1,080 times the worst lag on record, 1.849 ms', text)
+        self.assertNotIn('1,700', text)
+        for run in ('3,000 of 3,000, worst 0.64 ms', '2,000 of 2,000, worst 1.141 ms',
+                    '2,000 of 2,000, worst 1.006 ms',
+                    '6,000 of 6,000 in three batches of 2,000, worst 1.849 ms (D4v'):
+            self.assertIn(run, text)
+
+    def test_the_readme_says_a_step_back_of_the_real_clock_hides_later_files_from_both(self):
+        # D4v's finding 6, which GapTests' step-back case shows.
+        self.assertIn("**A step back of the real clock** by more than 2 s during a watch can hide "
+                      "later files from the watch, and from the seat's rule alike", self.readme())
 
 
 if __name__ == '__main__':
