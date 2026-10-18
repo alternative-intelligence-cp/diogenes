@@ -107,7 +107,7 @@ ACCOUNT  NAME  PID  STARTED  VERSION  SOCKET  STATE
 
 - **One line.** In a printed path, a backslash becomes `\\`, a byte that is not UTF-8 becomes `\xNN` of that byte, and a control character (C0, DEL or C1), U+2028 or U+2029 becomes `\xNN` or `\uNNNN`, so a crafted file name cannot add a line (decision 20). Any other path prints as it is.
 - **Flags.** `--every` and `--max` take whole seconds from 1 to 86400 (decision 22). An `--every` longer than `--max` sleeps once, to the cap.
-- **Only for an inbox.** `dio watch` lists whatever directory it is given. Pointed at a `sessions/` directory, it would list that directory, which `MIN.md`'s `USING.md` rule 7 ("Nobody runs a shell listing of any `sessions/` directory") keeps seats from doing, and it could print a new `.key` file's path in its `WAKE` line. So `USING.md` (step 5) should name the inbox as its one target.
+- **Only for an inbox.** `dio watch` lists whatever directory it is given. Pointed at a `sessions/` directory, it would list that directory, which `MIN.md`'s `USING.md` rule 7 ("Nobody runs a shell listing of any `sessions/` directory") keeps seats from doing, and it could print a new `.key` file's path in its `WAKE` line. So [`USING.md`](../docs/USING.md), build step 5, names the inbox as its one target ("Watching the inbox").
 
 ### How it compares times
 
@@ -126,7 +126,7 @@ ACCOUNT  NAME  PID  STARTED  VERSION  SOCKET  STATE
 ### The re-arm gap, and the seat's rule
 
 - **The gap.** A file that lands between one watch's exit (`WAKE` or `REARM`) and the next watch's start is present at that start, so no later watch reports it. So is a second file that lands within one poll of the first: the watch reports one, and exits. `MIN.md` is silent on this, in step 3 and in the `USING.md` rules.
-- **The choice: the seat covers it, and `dio watch` prints only step 3's lines** (decision 18). The rule, for `USING.md` (step 5) to carry:
+- **The choice: the seat covers it, and `dio watch` prints only step 3's lines** (decision 18). The rule, which [`USING.md`](../docs/USING.md) carries ("The seat's rule"):
   1. Just before arming each watch, read the clock, and note the reading in the log.
   2. After every exit, `WAKE` or `REARM`, re-arm first.
   3. Then read every regular file in the directory whose mtime is later than the reading taken before the watch that just exited, less 2 seconds.
@@ -155,7 +155,7 @@ The plan is silent on these points. Each is listed for `diogenes_0`'s review. De
 15. **The start lists the directory, then reads the clock, and a name listed then never wakes the watch.** That is M4's "pre-existing files never trigger", which "newer than start" alone would not give, since a file can carry an mtime after the start. The names are kept, not the files: a file touched later, or removed and made again under a listed name, never wakes it either. Listing first means that a file landing between the listing and the reading is new, and its mtime falls inside the margin.
 16. **A new name counts when its mtime is later than the start less 2 seconds.** The measurements and the reason are under "How it compares times". Without the margin, "newer than start" misses a file made within the coarse clock's lag of the start, which reached 1.849 ms in the runs on record.
 17. **The cap.** `--max` defaults to 3000 s, provisional until the gate's DX-13 legs, for the reasons under "The cap, provisional". A capped exit prints `REARM <dir>` and exits 1, so the seat can tell it from a `WAKE` (exit 0) and from a refusal (exit 2). Exit 1 is "nothing came", as for `--prefix` with no live match (decision 12). The cap runs on the monotonic clock.
-18. **The re-arm gap is the seat's to cover**, by the rule under "The re-arm gap, and the seat's rule", for `USING.md` (step 5) to carry. It needs nothing from `dio watch` beyond step 3's words, and the seat's reading, taken before it arms, covers a file landing between its read and the new watch's listing in either order. `diogenes_0`'s alternative, exit lines that carry each watch's start, is set out there.
+18. **The re-arm gap is the seat's to cover**, by the rule under "The re-arm gap, and the seat's rule", which `USING.md` (step 5) carries. It needs nothing from `dio watch` beyond step 3's words, and the seat's reading, taken before it arms, covers a file landing between its read and the new watch's listing in either order. `diogenes_0`'s alternative, exit lines that carry each watch's start, is set out there.
 19. **The directory must be a real directory.** It is opened with `O_DIRECTORY` and `O_NOFOLLOW`, so a symlink is refused even to a directory, as `dio` refuses one for the zone's directories; a link put in an inbox's place cannot turn the watch onto another directory. Each poll opens it again, and if it is gone, unreadable, or another directory (another device and inode), the watch ends with exit 2, so the seat hears of it at once rather than at the cap.
 20. **A printed path is absolute and on one line.** A relative `<dir>` is joined to the working directory, so the `WAKE` path still names the file after the seat's working directory changes. The escapes keep a crafted name to its line: it still wakes the seat, and the seat sees what is odd about it.
 21. **The first of several new files is the one with the earliest mtime, then the name that sorts first**, so the pick does not depend on the order the directory lists them in.
@@ -163,4 +163,4 @@ The plan is silent on these points. Each is listed for `diogenes_0`'s review. De
 
 ## Not in this step
 
-The `claude agents --json` fallback (built last, by `MIN.md`'s size table), `dio meters`, `docs/USING.md` (with the inbox's `printf` line and the seat's re-arm rule above), the task template, and any install. The `SessionStart` hook design is not built.
+The `claude agents --json` fallback (built last, by `MIN.md`'s size table), `dio meters`, the task template, and any install. The `SessionStart` hook design is not built. Build step 5's [`docs/USING.md`](../docs/USING.md) carries the inbox's `printf` line and the seat's re-arm rule above.
