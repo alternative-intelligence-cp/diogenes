@@ -24,6 +24,12 @@
 >   - `diogenes_0`'s Workspace-side check PASSED `af6ce85` at 04:27. It covered the filed copy against the Team's record (`cmp`, and the raw record's sha256), the code against step 3 and M4, the suite under two `TMPDIR` lengths, M7a, an strace audit of every write the tests make, a live `dio watch` under strace (`WAKE`, `REARM` and refusals, no entry opened), a live `dio who`, and §7.
 >
 >   Merged to `main` at 04:27 EDT as `0cd808a`. The build's choices where step 3 is silent are `src/README.md`'s decisions 14–22 (the note after step 3).
+> - **Build steps 4 and 5, the shared inbox, `USING.md` and the task template, are merged as one step** (2026-10-18). The Team seat's D5 built them on `team/diogenes-0.0-using-template`: `docs/USING.md` (the nine binding rules, the four caveats, the inbox and its one `printf` line, the seat's rule and a roster entry's removal), `docs/TASK-TEMPLATE.md` (the nine lines, who fills each, the poster check, and D1v's finding 2 settled), their tests, and D4v's findings 1, 5, 6 and 8 on `dio watch`. The role line, `meta/ROLES.md`, was already on `main`. **Its verifications** (`/home/randy/Team/REPORTS/`):
+>   - D5 (Opus 5.5, 03:02:38–04:11:36) worked to its brief, which the merger cleared. It made four commits where the brief ordered three; the fourth fixes its own test (`D5-diogenes-using-template.md`).
+>   - D5v (`npk:verifier`, Sonnet 5.5, 04:15:44–04:42:36) PASSED `a07b776` with eleven findings, none blocking (`D5v-diogenes-using-template-verify.md`).
+>   - `diogenes_1`'s Workspace-side check PASSED `a07b776` at 04:56. It covered the commits and their hygiene, the suite at each commit and under two `TMPDIR` lengths, M7a, an strace audit of every write the tests make, a live run of `USING.md`'s lines as printed against a scratch home with a `dio watch`, rules 1–9 word by word, every cited file, §7, and its own readings of D5's two self-cited facts and of the Write tool (the note after step 5).
+>
+>   Merged to `main` at 04:56 EDT as `3ab3115`. The build's choices where steps 4 and 5 are silent are `USING.md`'s decisions U1–U6 and `TASK-TEMPLATE.md`'s T1–T5, all accepted (the note after step 5). Hours: 1.15 for D5, and 4.46 against the 10.5 planned through step 5.
 
 ## Summary for the author
 
@@ -102,7 +108,7 @@ Prediction: sandboxed Bash cannot read either config dir. If DX-3 confirms it, `
   - **`version`**, which the field list above omits, is checked when present, and each row shows its own file's version (`src/README.md`, decision 3).
   - **The build's own choices** where this step is silent are `src/README.md`'s decisions 1–13. D3v and D3v2 found each within this plan's silence and none touching M1, M6, M7a or M7b.
   - **For M1's setup:** `dio` reads the role line from the clone it runs from (decision 10), so the Team clone pulls `main` before M1.
-  - **For step 5:** roster entries never expire, so `USING.md` says how to remove one.
+  - **For step 5:** roster entries never expire, so `USING.md` says how to remove one. **Done 2026-10-18:** `USING.md`, "Removing a roster entry" (`3ab3115`).
   - **Not built yet:** the `claude agents --json` fallback, which is built last (the size table).
 
 **Step 2. DX-3 narrowed, DX-18, DX-13.** DX-3 confirms, in both config dirs: `messagingSocketPath` equals `$CLAUDE_CODE_MESSAGING_SOCKET` in Bash; `name` equals the `ListAgents` name for a session started with `--name`, and what `name` holds unnamed; whether sandboxed Bash can read `sessions/`; whether `/proc/<host pid>` and its start time are visible from sandboxed Bash (the leg DR-108 needs, `meta/EXPERIMENTS.md:131`); and whether a sandboxed Bash `touch` and a Write-tool write into `~/.local/share/diogenes/inbox/` succeed with the step-6 fragment and fail without it. DX-18's listing half runs here: `claude agents --json --all` per config dir with one interactive session open, to learn whether interactive sessions appear at all (`EXPERIMENTS.md:252`). Its background-session wait is not needed. The DQ-4 `/config` look rides along. DX-13's 10-minute leg runs before `dio watch` ships; the 2-hour leg during the gate.
@@ -122,14 +128,14 @@ Prediction: sandboxed Bash cannot read either config dir. If DX-3 confirms it, `
     - The cap, `--max`, defaults to 3000 s, provisional until the gate's DX-13 legs. The time past 10 minutes is untested (decision 17).
     - A capped exit prints `REARM <dir>` and exits 1.
     - A file that lands between two watches is the seat's to cover (decision 18).
-  - **For step 5,** `USING.md` carries:
+  - **For step 5,** `USING.md` carries: **Done 2026-10-18** (`3ab3115`), at `USING.md`:115–131, :103, :97–99, :110 and :131.
     - the seat's re-arm rule from decision 18: read the clock before arming; after every exit, re-arm first, then read every regular file newer than the previous reading less 2 s;
     - the inbox as `dio watch`'s one target. Pointed at a `sessions/` directory, it would list it (rule 7);
     - messages made in place and never moved in, since a file moved in with an old mtime is not reported (step 4; D4v's finding 7);
     - that a `REARM` exit 1 is not an error;
     - that a step back of the real clock by more than 2 s hides later files from the watch and from the seat's rule alike (D4v's finding 6).
   - **For the gate:** whether a `REARM` (exit 1) or a refusal (exit 2) wakes the seat as the measured exit 0 did (D4v's finding 4). The 2-hour leg can end in a `REARM`, and the gate's legs decide `--max`.
-  - **D4v's findings 1, 5, 6 and 8 go to the next step's branch:**
+  - **D4v's findings 1, 5, 6 and 8 go to the next step's branch:** **Done 2026-10-18** in commit A, `943144e` (`3ab3115`).
     - tests for "list, then read the clock" and for a dangling symlink;
     - `src/README.md`'s "1,700 times", which is about 1,080 times D4v's worst lag (1.849 ms);
     - a README sentence on the clock step back.
@@ -142,6 +148,15 @@ Prediction: sandboxed Bash cannot read either config dir. If DX-3 confirms it, `
 - Cost: 0.5 seat-hours in `USING.md`, 0.25 in DX-3's write leg, about 15 author minutes.
 
 **Step 5. The role line, `USING.md`, the task template.** Under "Decisions, rules and size".
+
+- **Note 2026-10-18, `diogenes_1`, at build steps 4 and 5's merge (`3ab3115`):** what the merger accepted, and what goes on.
+  - **Accepted:** `USING.md`'s decisions U1–U6 and `TASK-TEMPLATE.md`'s T1–T5, each within this plan's silence (D5v's finding 9 names U2, U5 and T3); caveat (iv)'s label "Documented" (finding 7); and D5's four flags as D5v ruled them: commit D, A's comment in `src/dio`, the Team paths in `docs/`, and D5's read of the Gemini inbox.
+  - **Read by the merger at the merge, on Claude Code 2.1.301:** in the Bash tool, `find` is a shell function that runs bfs, which refuses `… 2 seconds ago` as "Invalid timestamp", so the seat's rule uses `command find` (`USING.md`:129); and the Gemini inbox's names are in local time (`USING.md`:165). The merge commit gives the readings.
+  - **The Write tool does not write in place** (D5v's finding 11, measured by the merger at 04:54:26): it writes `<name>.tmp.<pid>.<12 hex digits>` in the target directory and renames it to `<name>` about 8 ms later. So on `USING.md`:95's route, for a seat whose Bash cannot write the zone, a watch that polls in that window wakes under the temporary name, and the rename replaces a file of the same name.
+  - **To the next diogenes branch:** `USING.md`:95 says what the Write tool does (above). The removal line at `USING.md`:151 hashes `${CLAUDE_CONFIG_DIR:-$HOME/.claude}` as it is set, while `src/dio` hashes its `abspath` (`src/dio`:797–798 at `3ab3115`), so a trailing slash gives another key; `USING.md`:156's `ls` covers it. `tests/README.md`'s "the label `MIN.md`'s note gives it" is loose for (iv) (finding 7). The two whitespace-only lines, `TASK-TEMPLATE.md`:71 and `USING.md`:170 (finding 10).
+  - **For the gate:** the Write-tool route from a strict-sandbox seat (caveat (iii)), with the temporary name above.
+  - **If DQ-26 opens this repository,** the absolute paths in `docs/` are scrubbed first, since `docs/` is public-facing (D5v's finding 3).
+  - `meta/tasks/README.md`'s `verified-by` line carries T1 and T2's reading in a same-line note (finding 8).
 
 **Step 6. Install, all `[author]`, exact fragments printed** (`meta/roadmap/0.0/README.md:90`, rule 3). Step 0, from a terminal, is DONE: the author ran `mkdir -p -m 700 ~/.local/share/diogenes && mkdir -m 700 ~/.local/share/diogenes/{inbox,cache,roster} ~/.local/share/diogenes/inbox/{max,team}` at 08:46, and the Team seat checked it at 08:47 (status). This corrects the earlier form, `mkdir -m 700 -p …`, which leaves the parents it creates (`diogenes/` and `inbox/`) at the umask default. Then in `~/.claude/settings.json` and `~/.claude-team/settings.json`, each:
 
@@ -245,7 +260,7 @@ Recommend (c), as a stated acceptance of that risk, recorded in `USING.md`.
 8. Re-run M7b after every Claude Code update.
 9. `~/.local/share/diogenes/` is the one place outside its own domain that either account writes, and inside it each account writes only `inbox/<other account>/`, the shared cache in `cache/`, and its own entries in `roster/`. The Gemini inbox under `/home/randy/Workspace/META/NITPICK/messages/` is unchanged.
 
-- **Note 2026-10-15, Team seat (D2b):** for `docs/USING.md`, which build step 5 writes, four caveats about the inbox and the key-read deny pair, which `management_0` asked to have filed for `USING.md` (its message that arrived at 17:07:37, `/home/randy/Team/MANAGER-LOG.md`). Each with its source:
+- **Note 2026-10-15, Team seat (D2b):** for `docs/USING.md`, which build step 5 writes, four caveats about the inbox and the key-read deny pair, which `management_0` asked to have filed for `USING.md` (its message that arrived at 17:07:37, `/home/randy/Team/MANAGER-LOG.md`). Each with its source: **Done 2026-10-18:** `USING.md`'s caveats (i)–(iv), with (iv) labelled "Documented" (`3ab3115`).
   - **(i) A bypass-launched seat needs no inbox allow rule.** Measured from working seats on both accounts, at 14:49:20 (Team, `Ailp-team_2`) and 14:53 (Max, `diogenes_0`): a Bash `touch` and a Write-tool file each reached the other account's inbox and were removed, with the settings as they stood that day (`meta/research/done/dx3-probe-2026-10-15/D2b-controls.txt`, the `A2-bypass` lines, 20–26).
   - **(ii) A seat started in dontAsk needs `Edit(//home/randy/.local/share/diogenes/inbox/**)` to write the inbox with the Write tool, never `Write(...)`.** For a `Write` path rule, "Claude Code accepts the rule but never consults it", and the page says "Use `Edit(docs/**)` in place of `Write(docs/**)`" (code.claude.com/docs/en/permissions, "Read and Edit"; D2a's finding 1). An unsandboxed Bash write to the inbox isn't auto-allowed either: dontAsk "auto-denies every tool call that would otherwise prompt you" (code.claude.com/docs/en/permission-modes, "Allow only pre-approved tools with dontAsk mode"; `MANAGER-LOG.md`, 14:53:52). This is documented, not measured, because A2 skipped the dontAsk leg (`management_0`, 14:54:20). Related: under dontAsk, B1's probe-t had a compound command refused although its Bash was sandboxed (`meta/EXPERIMENTS.md`, DX-3's RESULT).
   - **(iii) A seat inside a strict sandbox, such as the libs workbench seats, writes the inbox with the Write tool,** because its Bash can't: the workbench's `allowWrite` lacks the zone. This is by the documentation, not measured (D2c's report, (4)), and it is `management_0`'s decision (a) (step 6's note).
@@ -253,7 +268,7 @@ Recommend (c), as a stated acceptance of that risk, recorded in `USING.md`.
 
 **The task template, required lines, in order:** `spec`, `posted-by`, `assigned-to`, `cross-account`, `room-at-post`, `acceptance`, `report`, `verified-by`, `merged-at`. M3 gates on `spec`, `assigned-to`, `report`, `verified-by`; the poster check gates through the fourth task.
 
-- **Note 2026-10-15, Team seat (D2b):** D1v's finding 2 stays open: who fills `spec` and `assigned-to` is not stated. D1v's words: "Who fills `spec` and `assigned-to` is not stated. M3 says the verifier fills `verified-by` on `main`, while rule 4 says nobody pushes `main` but `diogenes_0`. The two agree only if `diogenes_0` is the verifier or commits the field for it. The build's template can settle it." (`/home/randy/Team/REPORTS/D1v-diogenes-0.0-min-plan-verify.md:88`). It is left for the build's task template, `docs/TASK-TEMPLATE.md` (step 5), to settle, and is not decided here.
+- **Note 2026-10-15, Team seat (D2b):** D1v's finding 2 stays open: who fills `spec` and `assigned-to` is not stated. D1v's words: "Who fills `spec` and `assigned-to` is not stated. M3 says the verifier fills `verified-by` on `main`, while rule 4 says nobody pushes `main` but `diogenes_0`. The two agree only if `diogenes_0` is the verifier or commits the field for it. The build's template can settle it." (`/home/randy/Team/REPORTS/D1v-diogenes-0.0-min-plan-verify.md:88`). It is left for the build's task template, `docs/TASK-TEMPLATE.md` (step 5), to settle, and is not decided here. **Settled 2026-10-18** by `docs/TASK-TEMPLATE.md`'s decision T1, merged at `3ab3115` (the note after step 5).
 
 **Size.** Seat-hours of one seat with its subagents, in build order.
 
