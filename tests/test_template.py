@@ -169,7 +169,8 @@ class PosterLineTests(unittest.TestCase):
         self.commit(task, '# 2026-10-18-poster-check: a test task\n', 'task')
         self.commit('meta/ROLES.md', self.roles('management_2, diogenes_1'), 'rotate')
         result = subprocess.run(['/bin/bash', '-c', line.replace('<task file>', task)], cwd=self.repo,
-                                env=self.env, capture_output=True, text=True, timeout=60)
+                                env=self.env, stdin=subprocess.DEVNULL, capture_output=True,
+                                text=True, timeout=60)  # stdin: as in test_using.py's run_line
         self.assertEqual((result.returncode, result.stderr), (0, ''))
         self.assertEqual(result.stdout, self.roles('management_1, diogenes_1'))
         shown = os.path.join(self.world.base, 'ROLES-at-the-task.md')

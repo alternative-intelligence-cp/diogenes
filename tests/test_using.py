@@ -5,7 +5,10 @@ entry's removal against an entry that dio register wrote.
 Every documented line runs under /bin/bash with HOME set to a scratch home inside the test's
 temporary tree, which holds .local/share/diogenes/inbox/max/ and inbox/team/ at mode 0700. Each
 line names the zone through ~, and run_line refuses one that does not, so no run reaches the real
-inbox. No test sleeps: dio watch runs in-process on an injected clock whose sleep runs the line.
+inbox. Each bash gets /dev/null on stdin: at shell level 1, `bash -c` with a socket on stdin takes
+itself for a remote shell and reads /etc/bash.bashrc and ~/.bashrc, so what the test's bash reads
+would depend on what stdin the test was given. No test sleeps: dio watch runs in-process on an
+injected clock whose sleep runs the line.
 
 Run from the repository root, with TMPDIR set to a scratch directory (tests/README.md):
 
@@ -114,19 +117,20 @@ class Base(unittest.TestCase):
         return environment
 
     def run_line(self, line, command=(BASH, '-c'), **extra):
-        """Run a documented line under bash with HOME at the scratch home. It must name the
-        zone through ~, so the scratch home holds every path it writes."""
+        """Run a documented line under bash, with HOME at the scratch home and /dev/null on
+        stdin. It must name the zone through ~, so the scratch home holds every path it writes."""
         if '.local/share/diogenes' in line:
             self.assertIn('~/.local/share/diogenes/', line)
             self.assertNotIn('/home/', line)
         tmpdir = os.path.realpath(os.environ['TMPDIR'])
         self.assertTrue(os.path.realpath(self.home).startswith(tmpdir + os.sep))
         expanded = subprocess.run([BASH, '-c', 'printf %s ~/.local/share/diogenes/inbox/'],
-                                  env=self.environment(**extra), capture_output=True, text=True,
-                                  timeout=60).stdout
+                                  env=self.environment(**extra), stdin=subprocess.DEVNULL,
+                                  capture_output=True, text=True, timeout=60).stdout
         self.assertEqual(expanded, os.path.join(self.zone, 'inbox') + '/')
         return subprocess.run(list(command) + [line], env=self.environment(**extra),
-                              cwd=self.world.base, capture_output=True, text=True, timeout=60)
+                              stdin=subprocess.DEVNULL, cwd=self.world.base, capture_output=True,
+                              text=True, timeout=60)
 
     def names(self, account):
         return sorted(os.listdir(self.inbox[account]))
@@ -344,9 +348,12 @@ class PrintfTests(Base):
 
 
 class SeatRuleTests(Base):
-    """The seat's read (USING.md, "The seat's rule", step 3). Each run's bash first reads a file,
-    through BASH_ENV, that defines a shell function named find which fails, as Claude Code's Bash
-    tool defines one that runs bfs: `command find` must run the find on PATH instead."""
+    """The seat's read (USING.md, "The seat's rule", step 3). Each run defines a shell function
+    named find, which fails, in the same shell just before the documented line, as Claude Code's
+    Bash tool defines one that runs bfs: `command find` must run the find on PATH instead. (The
+    function is not given through BASH_ENV, which a bash with a socket on stdin skips.)"""
+
+    TRAP = 'find() { echo "the shell function find ran" >&2; return 97; }; '
 
     def find_line(self, reading, account='team'):
         line = documented(FIND, placeholder=True)
@@ -355,10 +362,10 @@ class SeatRuleTests(Base):
         return line.replace('<own account>', account).replace('<reading>', reading)
 
     def run_find(self, line):
-        functions = os.path.join(self.world.base, 'find-function.sh')
-        with open(functions, 'w', encoding='utf-8') as f:
-            f.write('find() { echo "the shell function find ran" >&2; return 97; }\n')
-        return self.run_line(line, BASH_ENV=functions)
+        trapped = self.run_line(self.TRAP + 'find; echo "after the trap"')
+        self.assertEqual((trapped.stdout, trapped.stderr),
+                         ('after the trap\n', 'the shell function find ran\n'))  # the trap works
+        return self.run_line(self.TRAP + line)
 
     def stamp(self, path, mtime_ns, symlink=False):
         os.utime(path, ns=(mtime_ns, mtime_ns), follow_symlinks=not symlink)
