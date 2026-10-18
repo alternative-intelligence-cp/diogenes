@@ -163,4 +163,4 @@ The plan is silent on these points. Each is listed for `diogenes_0`'s review. De
 
 ## Not in this step
 
-The `claude agents --json` fallback (built last, by `MIN.md`'s size table), `dio meters`, the task template, and any install. The `SessionStart` hook design is not built. Build step 5's [`docs/USING.md`](../docs/USING.md) carries the inbox's `printf` line and the seat's re-arm rule above.
+The `claude agents --json` fallback (built last, by `MIN.md`'s size table), `dio meters`, and any install. The `SessionStart` hook design is not built. Build step 5's [`docs/USING.md`](../docs/USING.md) carries the inbox's `printf` line and the seat's re-arm rule above, and its [`docs/TASK-TEMPLATE.md`](../docs/TASK-TEMPLATE.md) is the task template.

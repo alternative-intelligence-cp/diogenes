@@ -7,7 +7,7 @@ What 0.0-min gives:
 - `dio who`: presence, read from Claude Code's own sessions files (step 1).
 - `dio watch`: a seat's own background wait on its inbox (step 3).
 - The shared inbox under `~/.local/share/diogenes/inbox/`, written with one `printf` line (step 4).
-- The role line, [`meta/ROLES.md`](../meta/ROLES.md), and the task template, `docs/TASK-TEMPLATE.md` (step 5).
+- The role line, [`meta/ROLES.md`](../meta/ROLES.md), and the task template, [`docs/TASK-TEMPLATE.md`](TASK-TEMPLATE.md) (step 5).
 
 `dio` below is `src/dio` in a clone of this repository. [`src/README.md`](../src/README.md) gives its forms, its output and its exit statuses. Its install and the settings are `MIN.md`'s step 6, all the author's; the gate is `MIN.md`'s "The gate", rows M1 to M8; and `dio meters` is `MIN.md`'s too. Beyond `MIN.md`'s own rules and notes, which this file carries, it says nothing about them, and points there.
 
@@ -27,7 +27,7 @@ These are `MIN.md`'s nine rules ("Decisions, rules and size", "`USING.md`, bindi
 4. Branch per task: every task works on `team/<repo>-<item>` or an equivalent, nobody pushes `main` but the merging seat, and the merging seat is one named seat per repository; for this repository it is the holder of the `merger` line of [`meta/ROLES.md`](../meta/ROLES.md) (`dio who --address merger`). The Team seat never pushes `main` (`/home/randy/Team/CLAUDE.md`): it pushes `team/diogenes-<task>` branches and stops at "verified, ready to merge". The brief says "We verify it and merge it" (§2 line 38); the one-seat rule is this plan's addition and the mitigation for the deferred lease (DQ-30).
    - Source: `MIN.md` rule 4, whose first sentence ends "for this repository it is `diogenes_0`", the holder when the plan was written. Decision U1 words it as the `merger` line's holder.
 5. A task exists only as a committed template file; a report is a file plus a commit, verified by someone other than the reporter before merge.
-   - Source: `MIN.md` rule 5, and its row for DR-99, 100, 101 and 104 under "Requirements this plan changes". The template is `docs/TASK-TEMPLATE.md`, and the task files' convention is [`meta/tasks/README.md`](../meta/tasks/README.md).
+   - Source: `MIN.md` rule 5, and its row for DR-99, 100, 101 and 104 under "Requirements this plan changes". The template is [`docs/TASK-TEMPLATE.md`](TASK-TEMPLATE.md), and the task files' convention is [`meta/tasks/README.md`](../meta/tasks/README.md).
 6. Briefs cite `dio who --address <role>`, never a socket path or a numbered name.
    - Source: `MIN.md` rule 6, and decision 3: `dio who --address <role>` is DR-11's addressing in 0.0's form.
 7. Nobody runs a shell listing of any `sessions/` directory. Presence comes from `dio who` only.
