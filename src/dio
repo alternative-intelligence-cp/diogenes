@@ -827,8 +827,9 @@ WATCH_EVERY = 60  # --every's default: MIN.md step 3's `--every 60`
 WATCH_CAP = 3000  # --max's default, 50 minutes: provisional until the gate's DX-13 legs
 WATCH_LIMIT = 86400  # the most whole seconds --every or --max takes: one day
 # A name not present at the start wakes the watch only if its mtime is later than the start
-# less this margin. The kernel stamps mtimes from a clock that trails time.time_ns() by up
-# to a tick, so a file made just after the start can carry an mtime just before it.
+# less this margin. The kernel stamps mtimes from a coarse clock that trails time.time_ns(),
+# by up to 1.849 ms in the runs on record (src/README.md), so a file made just after the start
+# can carry an mtime just before it.
 MTIME_MARGIN_NS = 2 * 10 ** 9
 # What a printed path escapes, so its line stays one line: a backslash, C0 and C1 controls,
 # DEL, the line and paragraph separators, and lone surrogates (a byte that is not UTF-8).
