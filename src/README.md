@@ -1,6 +1,6 @@
 # src: the Diogenes source
 
-This is where the project's source code lives. Today it holds one file, `dio`, written for build steps 1 and 3 of cycle 0.0-min ([`../meta/roadmap/0.0/MIN.md`](../meta/roadmap/0.0/MIN.md)): `dio who` and `dio register` (step 1), and `dio watch` (step 3). It uses the Python standard library only (DQ-2).
+This is where the project's source code lives. Today it holds one file, `dio`, written for build steps 1, 3 and 7 of cycle 0.0-min ([`../meta/roadmap/0.0/MIN.md`](../meta/roadmap/0.0/MIN.md)): `dio who` and `dio register` (step 1), `dio watch` (step 3), and `dio meters` (step 7, which [`../meta/roadmap/0.0/FINISH.md`](../meta/roadmap/0.0/FINISH.md) specifies). It uses the Python standard library only (DQ-2).
 
 ## Running it
 
@@ -12,6 +12,8 @@ src/dio who --address probe-t --highest  # a bare prefix with several live: the 
 src/dio register <name>                  # the fallback: this seat's roster entry
 src/dio watch <dir>                      # the seat runs it in the background: WAKE or REARM
 src/dio watch <dir> --every 60 --max 3000  # the same, with its defaults written out
+src/dio meters                           # both accounts' meters, read only: exit 0 if both measured
+src/dio meters --team-usage <copy> --max-usage <copy>  # M5's aged copies
 ```
 
 - **The shebang is `#!/usr/bin/python3 -IB`.**
@@ -23,15 +25,19 @@ src/dio watch <dir> --every 60 --max 3000  # the same, with its defaults written
 
 ## The overrides
 
-The defaults are `MIN.md`'s. Every test points all of them at temporary directories, and also sets `HOME` to one, so a forgotten flag cannot reach a real path.
+The defaults are `MIN.md`'s, and `dio meters`' are `FINISH.md`'s, every one under `~`. Every test points all of them at temporary directories, and also sets `HOME` to one, so a forgotten flag cannot reach a real path.
 
 | Flag | Command | What it points at | Default |
 |---|---|---|---|
-| `--sessions-root LABEL=PATH` | `who` | One sessions directory and the account label its rows carry. Repeatable. Given at all, it replaces both defaults | `max=~/.claude/sessions` and `team=~/.claude-team/sessions` |
+| `--sessions-root LABEL=PATH` | `who`, `meters` | One sessions directory and the account label its rows carry. Repeatable. Given at all, it replaces both defaults. `dio meters` reads it only for the names of its `context` lines | `max=~/.claude/sessions` and `team=~/.claude-team/sessions` |
 | `--state-root PATH` | `who`, `register` | The directory that holds `cache/` (the grace cache) and `roster/` (`dio register`'s entries) | `~/.local/share/diogenes` |
 | `--roles PATH` | `who --address` | The role file | `meta/ROLES.md` in the repository `dio` sits in |
 | `--config-dir PATH` | `register` | The config dir that keys the entry | `$CLAUDE_CONFIG_DIR`, else `~/.claude` |
 | `--pid N` | `register` | The session's pid | The number in the socket's file name, `<pid>.sock` |
+| `--max-usage PATH` | `meters` | The Max account's usage file | `~/.claude/usage-latest.json` |
+| `--team-usage PATH` | `meters` | The Team account's usage file | `~/Team/CONFIG/usage-latest.json` |
+| `--context-root LABEL=PATH` | `meters` | One context directory and the account label its lines carry. Repeatable. Given at all, it replaces both defaults | `max=~/.claude/context` and `team=~/Team/CONFIG/context` |
+| `--ledger LABEL=PATH` | `meters` | One credits ledger and the source label its lines carry. Repeatable. Given at all, it replaces both defaults | `management=~/Workspace/MANAGEMENT/credits/LEDGER.md` and `libs=~/Workspace/REPOS/nitpick-libs/.internal/credits/LEDGER.md` |
 
 `dio watch` has no default path to override: it watches only the directory it is given. Its tests inject its clocks and its sleep through `main`'s `clock` argument instead (`WatchClock` in `../tests/fixtures.py`), so no test sleeps.
 
@@ -42,7 +48,7 @@ The defaults are `MIN.md`'s. Every test points all of them at temporary director
 - **The process check (DR-108).** `/proc/<pid>/stat` exists; its field 22, the process start time in clock ticks after boot, equals `procStart`; and `messagingSocketPath` is a socket. On this machine `procStart` is exactly that field: the Team seat's manager's file read `"5104572"`, and so did field 22 of its process's `/proc/3868039/stat` (checked 2026-10-15).
 - **The account** is the label of the directory read.
 - **The roster**, `roster/` under the state root, in `dio register`'s format. A roster entry is shown only when no strictly parsed sessions file in this pass has the same config dir and pid.
-- **What `dio` opens, all told.** Besides what the Python interpreter opens to start, to read `src/dio` and to load the standard library, `dio` opens only: the sessions directories it lists, and in them only the names that match `^[0-9]+\.json$`, relative to the directory; `/proc/<pid>/stat` for each pid it checks, and `/proc/stat` for the boot time the `STARTED` column needs; the role file, under `--address`; and the state root, its `cache/` and `roster/`, the files in them named in its own formats, and the temporary files it makes there to publish an entry. Each temporary file is named `.tmp-<pid>-<12 hex>`, from `dio`'s own pid and six random bytes, and created with `O_CREAT`, `O_EXCL` and `O_NOFOLLOW`, mode 0600. `dio` writes the entry into it, then renames it over the entry's name, or, for a new grace entry, hard-links it to that name (so the first writer's time stands) and removes it. If the rename or the link fails, it removes the temporary file. `dio watch` opens only the directory it watches, at the start and at each poll, with `O_DIRECTORY` and `O_NOFOLLOW`; it lists the directory and stats the names that were not in it at the start, and opens none of them.
+- **What `dio` opens, all told.** Besides what the Python interpreter opens to start, to read `src/dio` and to load the standard library, `dio` opens only: the sessions directories it lists, and in them only the names that match `^[0-9]+\.json$`, relative to the directory; `/proc/<pid>/stat` for each pid it checks, and `/proc/stat` for the boot time the `STARTED` column needs; the role file, under `--address`; and the state root, its `cache/` and `roster/`, the files in them named in its own formats, and the temporary files it makes there to publish an entry. Each temporary file is named `.tmp-<pid>-<12 hex>`, from `dio`'s own pid and six random bytes, and created with `O_CREAT`, `O_EXCL` and `O_NOFOLLOW`, mode 0600. `dio` writes the entry into it, then renames it over the entry's name, or, for a new grace entry, hard-links it to that name (so the first writer's time stands) and removes it. If the rename or the link fails, it removes the temporary file. `dio watch` opens only the directory it watches, at the start and at each poll, with `O_DIRECTORY` and `O_NOFOLLOW`; it lists the directory and stats the names that were not in it at the start, and opens none of them. `dio meters` opens, read-only, each usage file's and each ledger's directory and then the file, relative to it; each context directory, and in it only the names that match `^[A-Za-z0-9_-]+\.json$`, relative to the directory; and the sessions directories, as `dio who` opens them. It opens nothing under `/proc` or the state root.
 - **What it stats and prints from a file.** It stats, but never opens, the socket path that a sessions file or a roster entry names, once the entry has parsed and its pid and start time have passed the process check. It prints that path in the row's `SOCKET` column, and `--address` can print it, whatever the path is. So a crafted file from the same uid can make `dio` stat and print a `.key` path, though never open one. That is the same-uid risk `MIN.md` names as Risk 3: a hostile process of the same uid is not stopped.
 
 ## The output
@@ -80,7 +86,7 @@ ACCOUNT  NAME  PID  STARTED  VERSION  SOCKET  STATE
 
 ## What `dio` writes
 
-`dio who` and `dio register` write only under the state root, and `dio watch` writes nothing. Each of the two opens the state root and its leaf directory with `O_NOFOLLOW`, so neither can be a symlink, and makes the leaf with mode 0700 if it is missing. Each file is created with mode 0600. Every stored time is a clock reading taken as the file is written, in ISO 8601 UTC with a `Z`, to the microsecond (`PROJECT_RULES.md` §5).
+`dio who` and `dio register` write only under the state root, and `dio watch` and `dio meters` write nothing. Each of the two opens the state root and its leaf directory with `O_NOFOLLOW`, so neither can be a symlink, and makes the leaf with mode 0700 if it is missing. Each file is created with mode 0600. Every stored time is a clock reading taken as the file is written, in ISO 8601 UTC with a `Z`, to the microsecond (`PROJECT_RULES.md` §5).
 
 - **The grace cache**, `cache/grace-<config key>-<pid>.json`, written by `dio who`. The config key is the first 16 hex digits of the sha256 of the config dir's path, so the file is keyed by config dir and pid, and both accounts' runs share one file set. The fields are `configDir`, `pid`, `procStart`, `failedCheck` (which part failed), `firstFailedAt`, `graceSeconds` (60) and `goneAt`, an absolute time with the grace beside it.
   - The first failed check publishes the entry with `link()`, which never replaces an existing file, so when two runs race, the first writer's time stands.
@@ -133,9 +139,39 @@ ACCOUNT  NAME  PID  STARTED  VERSION  SOCKET  STATE
 - **Why it misses nothing.** By the margin argument above, a file that lands after a reading has an mtime later than that reading less 2 s. So a wake's read finds every file that landed after the reading before the watch that just exited, and up to the read itself. A file that lands later is found by the next wake, `WAKE` or `REARM`, at most `--max` later. That includes a file that lands after the read but before the new watch's listing, which that watch never reports. A file can be read twice, and the seat skips one it has handled.
 - **The other way, not taken:** each exit line could carry that watch's start (`diogenes_0`'s suggestion). It needs no reading kept by the seat, but it would change the `WAKE` line, which step 3 fixes as "`WAKE <path>` on one line", or add a line beside it. And a start that `dio watch` reads comes after the seat's own reading. If the seat's read ever ran before the new watch's listing, a file landing between the two would be covered only by the margin, while the seat's own reading covers it in either order. Taking it instead is `diogenes_0`'s call.
 
+## `dio meters` (build step 7)
+
+`MIN.md` names it, "a read-only printer of both accounts' usage files, context files and the credits ledger" (`MIN.md`, "Summary for the author"), and [`FINISH.md`](../meta/roadmap/0.0/FINISH.md)'s step 7 specifies it, with the merger's rulings in that file's last section, "At the merge". The ledgers are `management_1`'s choice: both, each labelled by its source, split by pool, with no total.
+
+- **What it reads.** Each account's usage file (`--max-usage`, `--team-usage`), each context directory (`--context-root`), each credits ledger (`--ledger`), and the sessions directories (`--sessions-root`), for the names of its `context` lines. The defaults are in the table under "The overrides".
+- **How it opens them.** A usage file or a ledger: its directory, then the file relative to it, by `dio who`'s `read_regular`, with `O_NOFOLLOW` and `O_NONBLOCK`, a regular file only, at most 64 KiB, or 1 MiB for a ledger. A context directory: listed with `os.scandir`, keeping only names that match `^[A-Za-z0-9_-]+\.json$`, the writer's id pattern with `.json`, so the writer's temporary `.ctx.*` files are skipped; every other entry is dropped as `os.scandir` returns it, unread and unstat'ed, and each match is opened relative to the directory in the same way. The sessions directories: by `dio who`'s reader. Each JSON file is parsed by `dio who`'s `strict_json`.
+- **What it writes: nothing.** It opens nothing for writing and makes no rename, link, unlink or directory, so it runs no process check and uses no grace cache.
+
+### Its output
+
+One record per line, its fields separated by tabs (two spaces in the table below), the first field naming the record. Every field takes decision 20's escapes, so a tab or a newline from a file prints as `\x09` or `\x0a`, and no field adds a field or a line.
+
+| Record | Its fields |
+|---|---|
+| `usage` | `usage  <account>  <state>  <age s>  <five_hour %>  <its reset>  <seven_day %>  <its reset>`, one line per account, `max` first. A `null` window prints `-` for its figure and its reset |
+| `model_limits` | `model_limits  <account>  <JSON>`: the file's `model_limits`, as compact JSON in the file's order, where a usage file in the format has it. The Team writer leaves it out |
+| `context` | `context  <account>  <session id>  <name>  <used %>  <age s>  <state>`, one line per context file. `<used %>` is the file's `context_window.used_percentage` |
+| `credits` | `credits  <source>  <pool>  uncorrected  <row>`, one line per ledger row, the row as it is. `<pool>` is `team-org` when the job cell ends with ` (team)`, else `individual-org` |
+
+- **The states.** `measured` while the age, the clock less the file's `written_at` in whole seconds, is at most 600; past it `stale (<N> min)`, N whole minutes rounded down (`FINISH.md`'s F4). Otherwise `unknown (<reason>)`, with `-` for every figure: `absent`, `refused: symlink`, `refused: not a regular file`, `unreadable: <errno>`, `usage format`, `context format` or `ledger format`. A ledger that cannot be read, or whose line 1 is not the header or line 2 not a separator, prints one line, `credits  <source>  -  unknown (<reason>)  <line>`, and a row of other than 8 cells prints such a line in its place.
+- **The figures.** The age is whole seconds. A percentage prints as the file gives it: an integer's digits, or a float's shortest form, such as `33.5`. A reset prints in ISO 8601 UTC with a `Z`, to the second.
+- **The name** is the `name` of the parsed sessions file whose `sessionId` is the context file's id. A context file that no parsed sessions file matches, such as an ended session's, prints its own `session_name` as `statusline:<name>`, else `-` (decision 26).
+- **Exit status:** 0 when both `usage` lines read `measured`, 1 when either does not, and 2 for a usage error, with argparse's usage and error on stderr. No other line changes it.
+
+### What it parses
+
+- **A usage file:** a JSON object with an integer `written_at`, and a `rate_limits` that holds `five_hour` and `seven_day`, each `null` or an object with a number `used_percentage` and an integer `resets_at`. Other keys are ignored (decision 2), and the file's own `account` too: the line's account is the flag's.
+- **A context file:** decision 27.
+- **A ledger:** line 1 is `| started | ended | job | model | turns | cost | status | rc |`, line 2 a separator, and each later line that starts with `|` a row (decision 33).
+
 ## Decisions the build made
 
-The plan is silent on these points. Each is listed for `diogenes_0`'s review. Decisions 1–13 are build step 1's, and 14–22 are build step 3's.
+The plan is silent on these points. Each is listed for `diogenes_0`'s review. Decisions 1–13 are build step 1's, and 14–22 are build step 3's. Decisions 23–35 are build step 7's, where `FINISH.md` is silent, listed for the merger's review; 23–26 write out the merger's rulings at `FINISH.md`'s merge, with the choices made within them.
 
 1. **One file, `src/dio`.** No package, no `sys.path` change under `-I`, no bytecode in the tree. Later commands (`dio watch`, `dio meters`) can be added to it or split out.
 2. **"Strict" means types and presence, not a closed key set.** The Team seat manager's sessions file holds 18 keys, and `MIN.md` lists 9. Rejecting unknown keys would turn every real file into a mismatch. The checks also come from 2.1.301's own code: its reader accepts exactly the four `status` values above, and its writer sets `startedAt` and `updatedAt` from `Date.now()`. Any other `status` value is a mismatch, so a format change shows instead of being guessed at.
@@ -161,6 +197,24 @@ The plan is silent on these points. Each is listed for `diogenes_0`'s review. De
 21. **The first of several new files is the one with the earliest mtime, then the name that sorts first**, so the pick does not depend on the order the directory lists them in.
 22. **`--every` and `--max` take whole seconds from 1 to 86400.** Step 3's `--every 60` is in whole seconds. The bound of one day is past the overnight leg, the longest the gate will measure, and keeps `time.sleep` far from its limit: `time.sleep(1e20)` raises `OverflowError`, which would be a traceback.
 
+23. **A `null` figure or name prints `-`** (the merger's ruling on D6v's finding 5). In a `context` line, a `null` or absent `used_percentage`, or a `null` or absent `context_window`, prints `-`; a sessions file's `null`, absent or empty `name` prints `-`; and a context file's `null`, absent or empty `session_name` gives no `statusline:` name. In a `usage` line, a `null` window prints `-` for its figure and its reset, as `FINISH.md` says. A window that is there still needs a number `used_percentage`, by `FINISH.md`'s parse, which this does not loosen: a window that holds a `null` one reads `unknown (usage format)`.
+24. **Lines go by account, then by session id** (the merger's ruling). The kinds come in `FINISH.md`'s order: the two `usage` lines, `max` first; the `model_limits` lines, in the same order; the `context` lines; then the `credits` lines. The `context` lines go by account, in the order the context directories are given (by default `max`, then `team`), then by session id, compared as text; two directories with one label merge into one run. The `credits` lines go by ledger, in the order given, then in each file's order. The reason: two runs can be compared line by line, as a timed check would compare them (`FINISH.md`, "What a watchdog would take").
+25. **`credits` prints every row, as `MIN.md`:41 says** (the merger's ruling). No row is left out and no total is printed: a balance is 0.1's (`MIN.md`:76).
+26. **The name joins by id, and else is `statusline:<name>`** (the merger's ruling). `<name>` is the `name` of the parsed sessions file whose `sessionId` is the context file's id, read by `dio who`'s reader from the `--sessions-root` directories. A context file that no parsed sessions file matches, such as an ended session's, prints its own `session_name` as `statusline:<name>`, else `-`. The choices within it:
+    - a sessions file that does not parse names nothing, as `dio who` shows no name from one;
+    - a match whose `name` is `null` prints `-`, not the `statusline:` name, since the ruling falls back only when no parsed sessions file matches;
+    - the join needs only the id in the context file's name, so it holds for a context file that reads `unknown`, while a `statusline:` name needs a file in the context format;
+    - when several parsed sessions files carry one `sessionId`, the one with the highest pid gives the name: Linux hands out pids in rising order, so it is the newest process unless the pid counter has wrapped.
+27. **The context format.** `FINISH.md` names `context format` but not its rule (D6v's finding 5). A context file is a JSON object with an integer `written_at`, a time as in a usage file; a `session_id` equal to the id in the file's name, as the writer names it, much as decision 4 holds a sessions file's `pid` to its name; a `context_window` that is absent, `null`, or an object whose `used_percentage` is absent, `null` or a number; and a `session_name` that is absent, `null` or a string. Other keys are ignored (decision 2). The figure is `context_window.used_percentage`, the key D6v's finding 5 names, and `meta/EXPERIMENTS.md`:144 reads.
+28. **A number, and an integer time.** A number is what `dio who`'s parse takes for `startedAt`: an int or a float, finite and not negative, that a float can hold, and never a boolean. An integer time is an int, never a boolean, that a UTC time can show, in the years 1 to 9999, so a 400-digit `written_at` reads `unknown (usage format)`, not a traceback. A file of more than 64 KiB reads as a format mismatch, `usage format` or `context format`, as `dio who` reads an oversized sessions file; a ledger of more than 1 MiB reads `ledger format`.
+29. **A negative age reads `measured`.** The age is the clock less `written_at`, so a `written_at` later than the clock gives a negative age, which is at most 600: it reads `measured` and prints as it is. The writer stamps `written_at` from this machine's clock, so only a step back of the clock gives one. `FINISH.md`'s rule is kept as it is worded.
+30. **The figures print as the file gives them, with no unit.** `<age s>` is whole seconds and `<used %>` a bare number, so a line splits on its tabs alone. An integer prints its digits and a float Python's shortest form, such as `33.5` or `99.0`. A reset prints in ISO 8601 UTC with a `Z`, to the second, since the file's own value is whole seconds.
+31. **`model_limits`.** It prints for a usage file in the format, `measured` or `stale`, that has the key, and a file not in the format gives none, as nothing else from it is shown. The value is written as compact JSON in the file's order, with no ASCII escaping, and then takes decision 20's escapes like every field, so a backslash in it, such as the one in JSON's own `\t`, prints doubled. A value that JSON cannot hold, a number past a float's range that Python reads as an infinity, prints `-`.
+32. **Every field takes decision 20's escapes,** `dio`'s own fields included, where they change nothing. A ledger is decoded with Python's `surrogateescape`, so a byte that is not UTF-8 prints as `\xNN` of that byte, and its lines are split at `\n` alone, so any other control character, a carriage return among them, stays in its row and prints escaped.
+33. **The ledger's rule.** Line 1's cells, with the spaces around each removed, are the eight names in order. Line 2 has eight cells, each of hyphens with an optional colon at either end, which is a Markdown separator. Every `|` separates two cells, and a last `|` closes the line. Only a line after line 2 that starts with `|` is a row; any other line is skipped. A row's pool is `team-org` when its job cell, with the spaces around it removed, ends with ` (team)`. The `<line>` of a `ledger format` line is that line as it is: line 1 or line 2, whichever is not the header or a separator, or `-` when the file has no such line; for a row, the row; and `-` for a ledger that cannot be read or is too large.
+34. **An input that cannot be read still shows.** A usage file always gives its `usage` line. A context directory that cannot be opened gives one line, `context  <account>  -  -  -  -  unknown (<reason>)`, and an empty one gives none. A ledger that cannot be read gives `credits  <source>  -  unknown (<reason>)  -`. A sessions directory that cannot be read gives a warning on stderr, as in `dio who`, and the names it would give are missing. A context file removed between the listing and its read is skipped, since the writer prunes a file idle a week.
+35. **A path is opened through its directory.** `dio meters` opens a usage file's or a ledger's directory, following any link in that path as `dio who` follows one in a sessions directory's, then the file relative to it with `O_NOFOLLOW`, so the file itself may not be a symlink. A path that ends in `/` names the directory itself, which is refused as not a regular file.
+
 ## Not in this step
 
-The `claude agents --json` fallback (built last, by `MIN.md`'s size table), `dio meters`, and any install. The `SessionStart` hook design is not built. Build step 5's [`docs/USING.md`](../docs/USING.md) carries the inbox's `printf` line and the seat's re-arm rule above, and its [`docs/TASK-TEMPLATE.md`](../docs/TASK-TEMPLATE.md) is the task template.
+The `claude agents --json` fallback (`FINISH.md`'s step 8, after DX-18; built last, by `MIN.md`'s size table), and any install. The `SessionStart` hook design is not built. Build step 5's [`docs/USING.md`](../docs/USING.md) carries the inbox's `printf` line and the seat's re-arm rule above, and its [`docs/TASK-TEMPLATE.md`](../docs/TASK-TEMPLATE.md) is the task template.

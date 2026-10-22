@@ -1,6 +1,7 @@
 #!/usr/bin/python3 -IB
-"""dio: Diogenes 0.0-min, build steps 1 and 3. Presence read from Claude Code's own sessions
-files, and the seat's own background wait on a directory.
+"""dio: Diogenes 0.0-min, build steps 1, 3 and 7. Presence read from Claude Code's own sessions
+files, the seat's own background wait on a directory, and a read-only printer of both accounts'
+meters.
 
     dio who                         every session in both config dirs, one row each
     dio who --prefix P              live sessions whose name starts with P, by trailing _N
@@ -10,14 +11,17 @@ files, and the seat's own background wait on a directory.
     dio watch DIR [--every S] [--max S]
                                     run in the background: WAKE <path> and exit 0 on a new
                                     regular file in DIR, or REARM <dir> and exit 1 at the cap
+    dio meters                      both accounts' usage and context files and the credits
+                                    ledgers, one tab-separated record per line; it writes
+                                    nothing, and exits 0 only when both usage lines read measured
 
-Standard library only (DQ-2). The plan of record is meta/roadmap/0.0/MIN.md, steps 1 and 3.
-src/README.md gives the layout, the output, the files written, the exit codes, and the
-choices each step made where the plan is silent.
+Standard library only (DQ-2). The plan of record is meta/roadmap/0.0/MIN.md, steps 1 and 3, and
+meta/roadmap/0.0/FINISH.md, step 7 (dio meters). src/README.md gives the layout, the output, the
+files written, the exit codes, and the choices each step made where the plan is silent.
 
-Overrides. The defaults are MIN.md's, and every test points all of them elsewhere:
-    --sessions-root LABEL=PATH  dio who: a sessions directory and its account label.
-                                Repeatable. Given at all, it replaces both defaults,
+Overrides. The defaults are MIN.md's and FINISH.md's, and every test points all of them elsewhere:
+    --sessions-root LABEL=PATH  dio who and dio meters: a sessions directory and its account
+                                label. Repeatable. Given at all, it replaces both defaults,
                                 max=~/.claude/sessions and team=~/.claude-team/sessions.
     --state-root PATH           dio who and dio register: the directory that holds
                                 cache/ (the grace cache) and roster/ (dio register's
@@ -28,6 +32,17 @@ Overrides. The defaults are MIN.md's, and every test points all of them elsewher
                                 Default $CLAUDE_CONFIG_DIR, else ~/.claude.
     --pid N                     dio register: the session's pid, when the socket's file
                                 name is not <pid>.sock.
+    --max-usage PATH            dio meters: the Max account's usage file.
+                                Default ~/.claude/usage-latest.json.
+    --team-usage PATH           dio meters: the Team account's usage file.
+                                Default ~/Team/CONFIG/usage-latest.json.
+    --context-root LABEL=PATH   dio meters: a context directory and its account label.
+                                Repeatable. Given at all, it replaces both defaults,
+                                max=~/.claude/context and team=~/Team/CONFIG/context.
+    --ledger LABEL=PATH         dio meters: a credits ledger and its source label.
+                                Repeatable. Given at all, it replaces both defaults,
+                                management=~/Workspace/MANAGEMENT/credits/LEDGER.md and
+                                libs=~/Workspace/REPOS/nitpick-libs/.internal/credits/LEDGER.md.
 """
 
 import argparse
@@ -95,6 +110,28 @@ def default_role_file():
     """meta/ROLES.md in the repository this script sits in (src/dio -> ../meta/ROLES.md)."""
     repository = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     return os.path.join(repository, 'meta', 'ROLES.md')
+
+
+def default_usage_files():
+    """FINISH.md step 7: each account's usage file, Max first."""
+    home = os.path.expanduser('~')
+    return [('max', os.path.join(home, '.claude', 'usage-latest.json')),
+            ('team', os.path.join(home, 'Team', 'CONFIG', 'usage-latest.json'))]
+
+
+def default_context_roots():
+    """FINISH.md step 7: each account's context directory, labelled by account."""
+    home = os.path.expanduser('~')
+    return [('max', os.path.join(home, '.claude', 'context')),
+            ('team', os.path.join(home, 'Team', 'CONFIG', 'context'))]
+
+
+def default_ledgers():
+    """FINISH.md step 7: the two credits ledgers, labelled by source (management_1's choice)."""
+    home = os.path.expanduser('~')
+    return [('management', os.path.join(home, 'Workspace', 'MANAGEMENT', 'credits', 'LEDGER.md')),
+            ('libs', os.path.join(home, 'Workspace', 'REPOS', 'nitpick-libs', '.internal', 'credits',
+                                  'LEDGER.md'))]
 
 
 def config_key(config_dir):
@@ -250,7 +287,8 @@ def parse_session(raw, stem):
     sessionId and cwd (strings), name (text or null), status (busy, shell, idle or
     waiting), startedAt and updatedAt (finite numbers, not negative, that a float can
     hold), version (text). Other keys are ignored. Raises Mismatch, carrying the file's own
-    version when it could be read.
+    version when it could be read. The record returned holds what dio who shows, and the
+    sessionId (None when absent), by which dio meters names a context file.
     """
     try:
         record = strict_json(raw)
@@ -276,7 +314,8 @@ def parse_session(raw, stem):
         raise Mismatch(version or None)
     return {'pid': pid, 'procStart': record['procStart'],
             'socket': record['messagingSocketPath'], 'name': record.get('name') or None,
-            'status': record.get('status'), 'version': version or None}
+            'status': record.get('status'), 'version': version or None,
+            'sessionId': record.get('sessionId')}
 
 
 def read_sessions_root(root):
@@ -986,6 +1025,282 @@ def watch(path, every, cap, clock):
         clock.sleep(min(every * 10 ** 9, left) / 10 ** 9)
 
 
+# ---------------------------------------------------------------- dio meters (FINISH.md step 7)
+
+METERS_FRESH = 600  # a usage or context file reads `measured` while its age is at most this (F4)
+LEDGER_LIMIT = 1024 * 1024  # the most bytes read from one credits ledger
+# A context file is <session id>.json, the id matching the Team writer's own ^[A-Za-z0-9_-]+$
+# (FINISH.md step 7), so the writer's temporary .ctx.* files never match.
+CONTEXT_FILE = re.compile(r'[A-Za-z0-9_-]+\.json', re.ASCII)
+LEDGER_HEADER = ('started', 'ended', 'job', 'model', 'turns', 'cost', 'status', 'rc')
+SEPARATOR_CELL = re.compile(r':?-+:?', re.ASCII)  # one cell of a Markdown table's separator line
+TEAM_JOB = ' (team)'  # a job cell that ends with it bills the Team org's credits
+METERS_HELP = (
+    "FINISH.md step 7: a read-only printer of both accounts' usage files, context files and the "
+    "credits ledgers, one tab-separated record per line, its first field naming it: usage (Max "
+    "first), model_limits, context (by account, then session id) and credits (each row as it "
+    "is). A file reads measured while its age, the clock less its written_at, is at most 600 s, "
+    "stale (<N> min) past it, else unknown (<reason>). It opens nothing for writing. Exit 0 when "
+    "both usage lines read measured, 1 when either does not, 2 for a usage error "
+    "(src/README.md).")
+
+
+def read_file(path, limit=RECORD_LIMIT):
+    """The bytes of the file at `path`, or None if it holds more than `limit`. It opens the
+    file's directory, then the file relative to it with read_regular, so the file itself may not
+    be a symlink, a FIFO or anything but a regular file. A path that ends in a slash names the
+    directory itself, which is refused. Raises Refused or OSError."""
+    directory, name = os.path.split(path)
+    dir_fd = os.open(directory or '.', DIR_FLAGS)
+    try:
+        return read_regular(name or '.', dir_fd, limit)
+    finally:
+        os.close(dir_fd)
+
+
+def unreadable(error):
+    """The reason in `unknown (<reason>)` for a file or directory that could not be read."""
+    if isinstance(error, Refused):
+        return 'refused: %s' % error
+    if isinstance(error, FileNotFoundError):
+        return 'absent'
+    return 'unreadable: %s' % errno.errorcode.get(error.errno, error.errno)
+
+
+def utc_seconds(value):
+    """An integer Unix time as ISO 8601 UTC with a Z, to the second. ValueError unless `value` is
+    an int (not a bool) that a UTC time can show, in the years 1 to 9999."""
+    if type(value) is not int:
+        raise ValueError('not an integer time')
+    try:
+        moment = datetime.fromtimestamp(value, timezone.utc)
+    except (OverflowError, OSError, ValueError):
+        raise ValueError('not a time a UTC clock can show') from None
+    return '%04d-%02d-%02dT%02d:%02d:%02dZ' % (moment.year, moment.month, moment.day,
+                                              moment.hour, moment.minute, moment.second)
+
+
+def freshness(written_at, now_seconds):
+    """(age, state). The age is the clock less written_at, in whole seconds. The state is
+    `measured` while the age is at most 600, and past it `stale (<N> min)`, N whole minutes
+    rounded down (FINISH.md's F4)."""
+    age = now_seconds - written_at
+    return age, ('measured' if age <= METERS_FRESH else 'stale (%d min)' % (age // 60))
+
+
+def parse_usage(raw):
+    """FINISH.md step 7's parse of a usage file: (written_at, [five_hour, seven_day], record),
+    each window None when it is null, else (used_percentage, resets_at in ISO 8601 UTC).
+
+    It needs an integer written_at, and a rate_limits whose five_hour and seven_day are both
+    there, each null or holding a number used_percentage and an integer resets_at. A number is
+    one dio who's parse takes for startedAt (finite, not negative, one a float can hold), and an
+    integer time one a UTC time can show. Other keys are ignored. Raises ValueError.
+    """
+    record = strict_json(raw)
+    if type(record) is not dict or type(record.get('rate_limits')) is not dict:
+        raise ValueError('not a usage file')
+    utc_seconds(record.get('written_at'))
+    windows = []
+    for key in ('five_hour', 'seven_day'):
+        if key not in record['rate_limits']:
+            raise ValueError('no %s' % key)
+        window = record['rate_limits'][key]
+        if window is None:
+            windows.append(None)
+        elif type(window) is dict and _number(window.get('used_percentage')):
+            windows.append((window['used_percentage'], utc_seconds(window.get('resets_at'))))
+        else:
+            raise ValueError('not a window')
+    return record['written_at'], windows, record
+
+
+def compact_json(value):
+    """`value` as compact JSON in its own order, or `-` when JSON cannot hold it: a number past a
+    float's range, which Python reads as an infinity."""
+    try:
+        return json.dumps(value, ensure_ascii=False, separators=(',', ':'), allow_nan=False)
+    except (ValueError, RecursionError):
+        return '-'
+
+
+def usage_lines(label, path, now_seconds):
+    """(the account's `usage` line, its `model_limits` line or None, whether it reads measured).
+    The model_limits line is printed where a file in the usage format holds that key."""
+    try:
+        written_at, windows, record = parse_usage(read_file(path))
+    except (Refused, OSError) as e:
+        return ['usage', label, 'unknown (%s)' % unreadable(e)] + ['-'] * 5, None, False
+    except ValueError:
+        return ['usage', label, 'unknown (usage format)'] + ['-'] * 5, None, False
+    age, state = freshness(written_at, now_seconds)
+    line = ['usage', label, state, str(age)]
+    for window in windows:
+        line += ['-', '-'] if window is None else [repr(window[0]), window[1]]
+    limits = None
+    if 'model_limits' in record:
+        limits = ['model_limits', label, compact_json(record['model_limits'])]
+    return line, limits, state == 'measured'
+
+
+def session_names(roots):
+    """{sessionId: name or None} from every sessions file under `roots` that dio who's reader
+    reads and parses. It writes nothing: no process check and no grace cache. When several carry
+    one sessionId, the one with the highest pid gives the name (src/README.md, decision 26)."""
+    best = {}
+    for label, root in roots:
+        try:
+            outcomes = read_sessions_root(root)
+        except OSError as e:
+            warn('cannot read the %s sessions directory %s: %s' % (label, root, e.strerror))
+            continue
+        for _, outcome in outcomes:
+            if type(outcome) is dict and outcome['sessionId'] is not None:
+                held = best.get(outcome['sessionId'])
+                if held is None or outcome['pid'] > held[0]:
+                    best[outcome['sessionId']] = (outcome['pid'], outcome['name'])
+    return {session_id: name for session_id, (_, name) in best.items()}
+
+
+def parse_context(raw, session_id):
+    """The parse of a context file, <session id>.json: (written_at, used_percentage or None,
+    session_name or None).
+
+    It needs an integer written_at, a time as in a usage file; a session_id equal to the id in
+    the file's name, as the writer names it; a context_window that is absent, null, or an object
+    whose used_percentage is absent, null or a number; and a session_name that is absent, null
+    or a string. Other keys are ignored. Raises ValueError.
+    """
+    record = strict_json(raw)
+    if type(record) is not dict or record.get('session_id') != session_id:
+        raise ValueError("not this session's context file")
+    utc_seconds(record.get('written_at'))
+    window = record.get('context_window')
+    used = None if type(window) is not dict else window.get('used_percentage')
+    if window is not None and (type(window) is not dict or not (used is None or _number(used))):
+        raise ValueError('not a context_window')
+    name = record.get('session_name')
+    if name is not None and type(name) is not str:
+        raise ValueError('not a session_name')
+    return record['written_at'], used, name or None
+
+
+def context_lines(roots, names, now_seconds):
+    """The `context` lines: one per <id>.json in each root, by account (in the order the roots
+    come), then by session id; or one `unknown` line for a root that cannot be read. The names
+    of other entries are dropped as os.scandir returns them, unread and unstat'ed."""
+    order, keyed = {}, []
+    for label, root in roots:
+        rank = order.setdefault(label, len(order))
+        try:
+            dir_fd = os.open(root, DIR_FLAGS)
+        except OSError as e:
+            keyed.append(((rank, ''), ['context', label] + ['-'] * 4 + ['unknown (%s)' % unreadable(e)]))
+            continue
+        try:
+            found = sorted(entry.name for entry in os.scandir(dir_fd)
+                           if CONTEXT_FILE.fullmatch(entry.name))
+            for file_name in found:
+                session_id = file_name[:-len('.json')]
+                own, used, age = None, '-', '-'
+                try:
+                    written_at, figure, own = parse_context(read_regular(file_name, dir_fd), session_id)
+                except FileNotFoundError:
+                    continue  # removed since the listing: the writer prunes a file idle a week
+                except (Refused, OSError) as e:
+                    state = 'unknown (%s)' % unreadable(e)
+                except ValueError:
+                    state = 'unknown (context format)'
+                else:
+                    seconds, state = freshness(written_at, now_seconds)
+                    age = str(seconds)
+                    if figure is not None:
+                        used = repr(figure)
+                if session_id in names:
+                    name = names[session_id] or '-'
+                else:
+                    name = 'statusline:' + own if own else '-'
+                keyed.append(((rank, session_id), ['context', label, session_id, name, used, age, state]))
+        except OSError as e:
+            keyed.append(((rank, ''), ['context', label] + ['-'] * 4 + ['unknown (%s)' % unreadable(e)]))
+        finally:
+            os.close(dir_fd)
+    return [line for _, line in sorted(keyed, key=lambda pair: pair[0])]
+
+
+def ledger_cells(line):
+    """The cells of a Markdown table line that starts with `|`: the text between its pipes. Every
+    `|` separates two cells, and a last `|` closes the line."""
+    parts = line.rstrip().split('|')
+    return parts[1:-1] if len(parts) > 1 and parts[-1] == '' else parts[1:]
+
+
+def ledger_header_fault(lines):
+    """None when line 1 is the ledger's header and line 2 a separator of 8 cells; else the first
+    of the two that is not, as it is, or `-` when it is missing."""
+    for number, wanted in ((0, 'header'), (1, 'separator')):
+        if len(lines) <= number:
+            return '-'
+        line = lines[number]
+        cells = [cell.strip() for cell in ledger_cells(line)] if line.startswith('|') else []
+        if wanted == 'header' and tuple(cells) != LEDGER_HEADER:
+            return line
+        if wanted == 'separator' and (len(cells) != 8 or not all(
+                SEPARATOR_CELL.fullmatch(cell) for cell in cells)):
+            return line
+    return None
+
+
+def ledger_lines(label, path):
+    """The `credits` lines of one ledger: each row as it is, with its pool, labelled uncorrected.
+    A ledger that cannot be read, or whose line 1 is not the header or line 2 not a separator,
+    gives one `unknown` line; a row of other than 8 cells gives one in its place."""
+    def unknown(reason, line):
+        return ['credits', label, '-', 'unknown (%s)' % reason, line]
+    try:
+        raw = read_file(path, LEDGER_LIMIT)
+    except (Refused, OSError) as e:
+        return [unknown(unreadable(e), '-')]
+    if raw is None:
+        return [unknown('ledger format', '-')]
+    # A byte that is not UTF-8 is kept as a lone surrogate, which decision 20 prints as \xNN.
+    lines = raw.decode('utf-8', 'surrogateescape').split('\n')
+    if lines[-1] == '':
+        lines.pop()  # the newline that ends the last line
+    fault = ledger_header_fault(lines)
+    if fault is not None:
+        return [unknown('ledger format', fault)]
+    found = []
+    for line in lines[2:]:
+        if not line.startswith('|'):
+            continue
+        cells = ledger_cells(line)
+        if len(cells) != 8:
+            found.append(unknown('ledger format', line))
+        else:
+            pool = 'team-org' if cells[2].strip().endswith(TEAM_JOB) else 'individual-org'
+            found.append(['credits', label, pool, 'uncorrected', line])
+    return found
+
+
+def meters(usage_files, context_roots, ledgers, sessions_roots, now):
+    """FINISH.md step 7. Returns (exit status, stdout lines, stderr lines). Every field passes
+    through decision 20's escapes, so no field adds a tab or a line."""
+    now_seconds = math.floor(now().timestamp())
+    lines, limits, measured = [], [], 0
+    for label, path in usage_files:
+        line, limit, fresh = usage_lines(label, path, now_seconds)
+        lines.append(line)
+        limits += [limit] if limit else []
+        measured += fresh
+    lines += limits
+    lines += context_lines(context_roots, session_names(sessions_roots), now_seconds)
+    for label, path in ledgers:
+        lines += ledger_lines(label, path)
+    status = 0 if measured == len(usage_files) else 1
+    return status, ['\t'.join(printable(field) for field in line) for line in lines], []
+
+
 # ---------------------------------------------------------------- command line
 
 def _seconds(text):
@@ -1051,6 +1366,23 @@ def build_parser():
                           'a background loop is measured to 10 minutes only, and the time past '
                           "10 minutes is untested until the gate's 2-hour leg)"
                           % (WATCH_LIMIT, WATCH_CAP))
+    met = commands.add_parser('meters', help="both accounts' usage and context files and the "
+                              'credits ledgers, read only', description=METERS_HELP)
+    met.add_argument('--max-usage', metavar='PATH',
+                     help="the Max account's usage file (default ~/.claude/usage-latest.json)")
+    met.add_argument('--team-usage', metavar='PATH',
+                     help="the Team account's usage file (default ~/Team/CONFIG/usage-latest.json)")
+    met.add_argument('--context-root', metavar='LABEL=PATH', action='append', type=_sessions_root,
+                     help='a context directory and its account label; repeatable; replaces the '
+                          'defaults max=~/.claude/context and team=~/Team/CONFIG/context')
+    met.add_argument('--ledger', metavar='LABEL=PATH', action='append', type=_sessions_root,
+                     help='a credits ledger and its source label; repeatable; replaces the defaults '
+                          'management=~/Workspace/MANAGEMENT/credits/LEDGER.md and '
+                          'libs=~/Workspace/REPOS/nitpick-libs/.internal/credits/LEDGER.md')
+    met.add_argument('--sessions-root', metavar='LABEL=PATH', action='append', type=_sessions_root,
+                     help="a sessions directory, read for the context lines' names; repeatable; "
+                          'replaces the defaults max=~/.claude/sessions and '
+                          'team=~/.claude-team/sessions')
     parser.who_parser = who
     return parser
 
@@ -1061,6 +1393,15 @@ def main(argv=None, now=utc_now, environ=None, clock=None):
     args = parser.parse_args(argv)
     if args.command == 'watch':
         status, out, err = watch(args.directory, args.every, args.max, clock or SystemClock())
+    elif args.command == 'meters':
+        usage = dict(default_usage_files())
+        for label, path in (('max', args.max_usage), ('team', args.team_usage)):
+            if path is not None:
+                usage[label] = path
+        status, out, err = meters([('max', usage['max']), ('team', usage['team'])],
+                                  args.context_root or default_context_roots(),
+                                  args.ledger or default_ledgers(),
+                                  args.sessions_root or default_sessions_roots(), now)
     elif args.command == 'register':
         status, out, err = register(args.name, args.state_root or default_state_root(),
                                     args.config_dir, args.pid, environ, now)

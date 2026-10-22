@@ -93,6 +93,7 @@ What each part does:
 - **On a refusal,** the name is taken: the same sender used the same subject in the same minute. Choose another subject and run the line again. Never remove or overwrite the first message.
 - **A message that carries a decision** has its log line written first, in the same turn (rule 3).
 - **A seat whose Bash cannot write the zone,** as in caveat (iii), makes the same file with the Write tool: the same name, with the time read first with `date -u +%Y-%m-%dT%H%M`, and the same lines. The Write tool has no `set -C`, so the seat first checks that no file has that name.
+  - **The Write tool does not make the file in place.** *Measured* by the merger at 04:54:26 on 2026-10-18, under Claude Code 2.1.301, from a Max seat's Write tool into a scratch directory, by inotify: making a new `<name>`, the tool created `<name>.tmp.<pid>.<12 hex digits>` in that directory, wrote and closed it, and renamed it to `<name>` 8 ms later (`MIN.md`, the note after step 5; the merge commit `3ab3115`). So a watch that polls in that window wakes under the temporary name, and the rename replaces a file of the same name. It was not measured from a seat inside a strict sandbox, the seat this route is for: the gate's M4 measures that route ([`FINISH.md`](../meta/roadmap/0.0/FINISH.md), "The scope's six items", item 6).
 
 ### Made in place, never moved in
 
@@ -151,9 +152,10 @@ A seat of the same account removes it with this line, with the entry's pid for `
 rm -- ~/.local/share/diogenes/roster/"$(printf %s "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" | sha256sum | cut -c1-16)-<pid>.json"
 ```
 
+- The line hashes `${CLAUDE_CONFIG_DIR:-$HOME/.claude}` as it is set, while `dio register` keys the entry by the config dir's absolute path, as `os.path.abspath` writes it (`src/dio`, `register`). So a `CLAUDE_CONFIG_DIR` set with a trailing slash gives the line another key than the entry's, and the `rm` finds no file. The `ls` in the last bullet below covers that case.
 - Only a seat of the entry's own account removes it (rule 9: each account writes only its own entries in `roster/`). A live session's entry needs no removal: registering again replaces it.
 - After it, `dio who` shows no row for that entry, and the same pass removes the grace cache's entry for its pid, if no sessions file names that pid.
-- If the key is in doubt, for instance because `CLAUDE_CONFIG_DIR` was scrubbed when the seat registered (decision 11), `ls ~/.local/share/diogenes/roster/` shows the entries' names. That directory is not a `sessions/` directory, so rule 7 does not forbid it.
+- If the key is in doubt, for instance because `CLAUDE_CONFIG_DIR` was scrubbed when the seat registered (decision 11), or was set with a trailing slash (above), `ls ~/.local/share/diogenes/roster/` shows the entries' names. That directory is not a `sessions/` directory, so rule 7 does not forbid it.
 
 ## Decisions this file makes
 
@@ -167,7 +169,7 @@ rm -- ~/.local/share/diogenes/roster/"$(printf %s "${CLAUDE_CONFIG_DIR:-$HOME/.c
   - a file moved in with an old mtime is not reported by `dio watch` (D4v's finding 7);
   - a temporary file made in the inbox would itself be a new regular file, which wakes a watch under its own name;
   - `mv` replaces a file of the same name, which "never edited" forbids.
-  
+
   Traced, the line makes one open of the final name, with `O_WRONLY`, `O_CREAT` and `O_EXCL`, and no rename or link.
 - **U4. A second message with the same name never overwrites the first.** `set -C` makes bash refuse a name that a regular file holds, and it opens a new name with `O_EXCL`, so the refusal holds when two senders race for one name. Since the name holds the minute, the sender and the subject, a refusal means one sender used one subject twice in a minute, and the sender picks another subject. The limit: `set -C` refuses the name when it holds a regular file, a symlink to one, or a dangling symlink, but bash writes through a symlink to anything else, such as `/dev/null`. No message is such a thing, and only the same uid, or root, can write in a mode-0700 inbox, which is `MIN.md`'s Risk 3.
 - **U5. The first line names the receiver.** An account's inbox is shared by every seat of that account that watches it, and the name has no place for a receiver. A `to:` line lets each woken seat tell whether the message is its own, at the cost of one line. A role is the better address, by rule 6's reasoning: it resolves to the holder when the message is read.
