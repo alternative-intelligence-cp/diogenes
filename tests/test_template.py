@@ -127,6 +127,12 @@ class TemplateTests(unittest.TestCase):
                 self.assertIn(words, readme)
                 self.assertIn(words, decision)
 
+    def test_no_line_of_the_template_ends_in_whitespace(self):
+        # D5v's finding 10: git diff --check flagged a whitespace-only line.
+        for number, line in enumerate(read(TEMPLATE).split('\n'), 1):
+            with self.subTest(line=number):
+                self.assertEqual(line, line.rstrip())
+
 
 class PosterLineTests(unittest.TestCase):
     """The poster check's git line, run in a scratch repository whose poster line rotates after

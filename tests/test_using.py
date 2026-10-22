@@ -202,6 +202,29 @@ class RuleTests(unittest.TestCase):
         for decision in ('U1', 'U2', 'U3', 'U4', 'U5', 'U6'):
             self.assertEqual(text.count('- **%s. ' % decision), 1, decision)
 
+    def test_the_write_tool_route_is_labelled_measured_with_what_was_measured(self):
+        # MIN.md's note after step 5 (D5v's finding 11), with the merger's term: the claim is
+        # labelled, says what was measured, and claims nothing for a strict-sandbox seat.
+        text = ' '.join(read(USING).split())
+        route = section(text, '- **A seat whose Bash cannot write the zone,**', '### Made in place')
+        for words in ('*Measured* by the merger at 04:54:26 on 2026-10-18, under Claude Code 2.1.301, '
+                      "from a Max seat's Write tool into a scratch directory, by inotify",
+                      'created `<name>.tmp.<pid>.<12 hex digits>` in that directory',
+                      'renamed it to `<name>` 8 ms later',
+                      'a watch that polls in that window wakes under the temporary name',
+                      'It was not measured from a seat inside a strict sandbox',
+                      "the gate's M4 measures that route"):
+            with self.subTest(words=words):
+                self.assertIn(words, route)
+        self.assertIn('it writes `<name>.tmp.<pid>.<12 hex digits>` in the target directory and '
+                      'renames it to `<name>` about 8 ms later', ' '.join(read(MIN).split()))
+
+    def test_no_line_of_the_file_ends_in_whitespace(self):
+        # D5v's finding 10: git diff --check flagged two whitespace-only lines.
+        for number, line in enumerate(read(USING).split('\n'), 1):
+            with self.subTest(line=number):
+                self.assertEqual(line, line.rstrip())
+
 
 class PrintfTests(Base):
     def example(self):
@@ -460,6 +483,29 @@ class RosterRemovalTests(Base):
                 self.assertEqual(os.listdir(roster), [])
                 self.assertEqual(self.who_rows(pid), [])
                 self.assertNotIn(grace, os.listdir(cache))
+
+    def test_a_trailing_slash_gives_the_rm_line_another_key_and_the_ls_line_shows_the_entry(self):
+        # MIN.md's note after step 5: the line hashes $CLAUDE_CONFIG_DIR as it is set, while dio
+        # register keys the entry by its abspath, which drops the slash.
+        os.makedirs(os.path.join(self.home, '.claude-team', 'sessions'))
+        roster = os.path.join(self.zone, 'roster')
+        config_dir = os.path.join(self.home, '.claude-team')
+        config_env = {'CLAUDE_CONFIG_DIR': config_dir + '/'}
+        pid = self.world.live_process()
+        sock = self.world.listen('%d.sock' % pid)
+        result = self.world.run('register', 'probe-t_5', CLAUDE_CODE_MESSAGING_SOCKET=sock, **config_env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        entry = '%s-%d.json' % (dio.config_key(config_dir), pid)
+        self.assertEqual(os.listdir(roster), [entry])
+        self.assertNotEqual(dio.config_key(config_dir + '/'), dio.config_key(config_dir))
+        result = self.run_line(documented(RM, placeholder=True).replace('<pid>', str(pid)), **config_env)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('No such file or directory', result.stderr)
+        self.assertEqual(os.listdir(roster), [entry])  # the entry stays
+        ls = 'ls ~/.local/share/diogenes/roster/'
+        self.assertIn('`%s`' % ls, read(USING))
+        result = self.run_line(ls, **config_env)
+        self.assertEqual((result.returncode, result.stdout), (0, entry + '\n'))
 
 
 if __name__ == '__main__':
