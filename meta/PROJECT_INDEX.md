@@ -26,7 +26,7 @@ A cheat sheet: where everything is, in this repository and outside it. Paths out
 | Research still to do | `meta/research/todo/` |
 | Known issues | `meta/issues/open/`, `meta/issues/closed/` |
 | Per-agent private files, the shared space, scratch | `.internal/agent/<identity>/`, `.internal/shared/`, `.internal/scratch/` (gitignored) |
-| Code, docs, tests, vendored code | `src/dio` (`dio who` and `dio register`, 0.0-min's build step 1, and `dio watch`, build step 3; `src/README.md` gives its layout, output and decisions) and `tests/` (`tests/README.md`). `docs/USING.md` (the rules every seat follows, the inbox and its one `printf` line, and the seat's rule; build steps 4 and 5) and `docs/TASK-TEMPLATE.md` (the task template; build step 5). `vendors/` is an empty skeleton today |
+| Code, docs, tests, vendored code | `src/dio` (`dio who` and `dio register`, 0.0-min's build step 1, `dio watch`, build step 3, and `dio meters`, build step 7 in `meta/roadmap/0.0/FINISH.md`; `src/README.md` gives its layout, output and decisions) and `tests/` (`tests/README.md`). `docs/USING.md` (the rules every seat follows, the inbox and its one `printf` line, and the seat's rule; build steps 4 and 5) and `docs/TASK-TEMPLATE.md` (the task template; build step 5). `vendors/` is an empty skeleton today |
 | Licence | `LICENSE` (AGPL-3.0) |
 
 ## Outside this repository
