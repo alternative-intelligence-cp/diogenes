@@ -19,6 +19,7 @@ from fixtures import REPOSITORY, World
 dio = fixtures.load_dio()
 TEMPLATE = os.path.join(REPOSITORY, 'docs', 'TASK-TEMPLATE.md')
 MIN = os.path.join(REPOSITORY, 'meta', 'roadmap', '0.0', 'MIN.md')
+FINISH = os.path.join(REPOSITORY, 'meta', 'roadmap', '0.0', 'FINISH.md')
 TASKS_README = os.path.join(REPOSITORY, 'meta', 'tasks', 'README.md')
 COLUMNS = ['Line', 'What it holds', 'Who fills it', 'Where', 'When']
 POSTED = ('spec', 'posted-by', 'cross-account', 'room-at-post', 'acceptance')
@@ -126,6 +127,28 @@ class TemplateTests(unittest.TestCase):
             with self.subTest(words=words):
                 self.assertIn(words, readme)
                 self.assertIn(words, decision)
+
+    def test_room_at_post_carries_finish_md_s_t6_with_the_two_pools(self):
+        # FINISH.md step 7's T6: the poster copies the account's usage line, or names the pool.
+        _, _, cells = table()
+        held = cells['room-at-post']['What it holds']
+        finish = ' '.join(read(FINISH).split())
+        t6 = finish[finish.index('**T6.**'):finish.index('**Tests, `tests/test_meters.py`:**')]
+        for words in ("the poster copies that account's `usage` line",
+                      '`measured` if its state is, else `unknown`, as in the cut form',
+                      'for a credits job, `unknown`, naming the pool'):
+            with self.subTest(words=words):
+                self.assertIn(words, t6)  # FINISH.md says it
+                self.assertIn(words, held)  # and the row carries it
+        for pool in ('`team-org`', '`individual-org`'):
+            self.assertIn(pool, held)
+        text = ' '.join(read(TEMPLATE).split())
+        self.assertEqual(text.count('- **T6. '), 1)
+        decision = text[text.index('- **T6. '):]
+        cut = 'labelled `measured` for both accounts, or `unknown` if the file is older than 10 minutes'
+        self.assertIn(cut, ' '.join(read(MIN).split()))  # MIN.md's cut form says it
+        self.assertIn(cut, decision)  # and T6 quotes it
+        self.assertIn('"%s"' % t6.split('row gains: ', 1)[1].strip(), decision)  # T6 quotes FINISH.md
 
     def test_no_line_of_the_template_ends_in_whitespace(self):
         # D5v's finding 10: git diff --check flagged a whitespace-only line.
