@@ -249,7 +249,7 @@ Drafted 2026-10-10, revised the same day. Feasibility probes, ordered by what th
 - Decides: confirms that 0.1 needs tokens, not peer credentials (DQ-6).
 - Cost: 10 minutes. Prerequisites: the second account for the second half.
 
-**DX-18. `claude agents --json --all` under each config dir, as a presence source.**
+**DX-18. `claude agents --json --all` under each config dir, as a presence source.** *RESULT (the listing half), 2026-10-22: at this file's end, under "DX-18's RESULT".*
 - Commands: `claude agents --json --all` with and without `CLAUDE_CONFIG_DIR`; start a background session with `claude --bg`; leave it idle an hour; re-run.
 - Expected: per-config-dir listings; `status` and `waitingFor` fields; the idle background session's process stopped after about an hour unless pinned [r1b §5]; whether its socket stays bound is UNVERIFIED.
 - Decides: whether `dio who` polls this for background seats, whether Team workers can be background sessions (DQ-29), and whether seats must be pinned.
@@ -342,3 +342,16 @@ Drafted 2026-10-10, revised the same day. Feasibility probes, ordered by what th
 - Expected: documented as the way to load them [r1 §4]; `-p` binds an inbox socket and kills async hooks at teardown.
 - Decides: whether API-credit jobs can call Diogenes themselves in 0.2.
 - Cost: 15 minutes and one smoke job's credits. Prerequisites: 0.1's MCP server.
+
+## DX-18's RESULT (the listing half), 2026-10-22
+
+Pointed to from DX-18's heading (:252). It is `roadmap/0.0/FINISH.md` step 8a, and its record is `research/done/dx18-probe-2026-10-22/`.
+
+- **RESULT: each config dir's listing holds every live interactive session that `dio who` lists there, by pid: 18 of 18 under `~/.claude` (`max`) and 3 of 3 under `~/.claude-team` (`team`), each with `kind` `interactive`.** So step 8b's condition (F5) holds.
+  - **The run.** The author ran the run sheet's two lines (`DX3-run-sheet.md`:264–265) in a plain terminal at 07:27:00 EDT. The files' mtimes read 07:27:00.39 to 07:27:00.87, and both `.err` files are empty (`management_2`'s relay of 07:27:14). In the same minute the Team seat's manager, `Ailp-team_16`, ran `src/dio who` at `dfe29c4` twice, at 07:27:15.63 and 07:27:45.84, each exit 0 with an empty stderr. The two outputs are byte-identical: 21 rows, all live. Claude Code was 2.1.307 on the Team seat.
+  - **`max`:** 18 rows, all `kind` `interactive`, with `status` `busy` 3 and `idle` 15, and an integer `pid` and a `sessionId` in each. Each matches a live `dio who` row by pid, and none is left over.
+  - **`team`:** 4 rows, `interactive` 3 and `background` 1. The three `interactive` rows are `dio who`'s three live team rows, by pid. The `background` row is the DX-3 probe's conversation of 2026-10-15 (started 14:40:23 that day), with `state` `stopped`, `status` null and `pid` null. `dio who` has no row for it, which is right, since it has no process.
+  - **`status` against `dio who`'s state:** in all 21 matched rows, `busy` goes with `live` and `idle` with `live-idle`.
+  - **Keys:** each `max` row has `cwd`, `kind`, `name`, `pid`, `sessionId`, `startedAt` and `status`. The `team` listing's `background` row alone adds `id` and `state`. No row has `waitingFor`.
+  - **The supervisor:** no process the listing started was running at 07:27:48, by `ps`. UNVERIFIED: whether one started and exited within those 48 seconds.
+  - **Still open:** DX-18's other half (a `claude --bg` session left idle for an hour, then listed again), a running background session's row, and the listing from sandboxed Bash. The raw files stay local in `/home/randy/Team/PROBES/dio-probe/results/`, since they carry every session's `sessionId`, and the record gives their sha256.
