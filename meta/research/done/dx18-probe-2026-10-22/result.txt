@@ -1,0 +1,41 @@
+DX-18, the listing half (FINISH.md step 8a), 2026-10-22: the summary of each listing and dio who's live rows against it.
+Made by /home/randy/Team/META/diogenes/probes/dx18_summary.py (Team-local; `python3 -I dx18_summary.py RESULTS DIO_WHO_FILE`),
+which prints no sessionId and no listing row's name, over the raw files in /home/randy/Team/PROBES/dio-probe/results/,
+which stay local. The last line, by jq, describes the one listing row with no pid, its name among its fields. Both dio who runs (07:27:15.63 and 07:27:45.84 EDT) print the same
+21 rows, byte for byte (sha256 5a8eb3fe…84df), so this is run 1's comparison; run 2's is the same.
+
+== max: DX18-max-agents.json 4501 B; .err 0 B
+   rows 18; by kind {'interactive': 18}; by status {'busy': 3, 'idle': 15}
+   integer pid in 18 of 18; sessionId present in 18 of 18; keys ['cwd', 'kind', 'name', 'pid', 'sessionId', 'startedAt', 'status']
+== team: DX18-team-agents.json 930 B; .err 0 B
+   rows 4; by kind {'background': 1, 'interactive': 3}; by status {'None': 1, 'busy': 1, 'idle': 2}
+   integer pid in 3 of 4; sessionId present in 4 of 4; keys ['cwd', 'id', 'kind', 'name', 'pid', 'sessionId', 'startedAt', 'state', 'status']
+== dio who's live rows against the listing of their account
+   max   diogenes_1                1673174 live-idle  listed, kind interactive, status idle
+   max   diogenes_2                1673675 live-idle  listed, kind interactive, status idle
+   max   management_2              1668145 live       listed, kind interactive, status busy
+   max   diogenes_3                1062500 live-idle  listed, kind interactive, status idle
+   max   management_3              1668930 live-idle  listed, kind interactive, status idle
+   max   nitpick-fuzz_3            1671714 live-idle  listed, kind interactive, status idle
+   max   management_4              1709041 live-idle  listed, kind interactive, status idle
+   max   nitpick-fuzz_4            1672401 live-idle  listed, kind interactive, status idle
+   max   nitpick-fuzz_5             150367 live-idle  listed, kind interactive, status idle
+   max   nitpick-libs_24           1664751 live       listed, kind interactive, status busy
+   max   nitpick-libs_25           1790778 live-idle  listed, kind interactive, status idle
+   max   nitpick-libs_26           1694347 live-idle  listed, kind interactive, status idle
+   max   nitpick-compiler_42       1670212 live       listed, kind interactive, status busy
+   max   nitpick-compiler_43        229881 live-idle  listed, kind interactive, status idle
+   max   nitpick-compiler_44       1710264 live-idle  listed, kind interactive, status idle
+   max   claude-skills-devTeam_51  1675559 live-idle  listed, kind interactive, status idle
+   max   claude-skills-devTeam_52  1676201 live-idle  listed, kind interactive, status idle
+   max   claude-skills-devTeam_53  1676757 live-idle  listed, kind interactive, status idle
+   team  Ailp-team_16              1624703 live       listed, kind interactive, status busy
+   team  Ailp-team_17              1627195 live-idle  listed, kind interactive, status idle
+   team  Ailp-team_18              1685253 live-idle  listed, kind interactive, status idle
+== tally: {('max', 'listed interactive'): 18, ('team', 'listed interactive'): 3}
+== max: listing rows with no live dio who row: 0, by kind {}
+== team: listing rows with no live dio who row: 1, by kind {'background': 1}
+
+== team: the listing's one row with no integer pid:
+{"kind":"background","state":"stopped","status":null,"startedAt":1792089623526,"name":"DX-3 Diogenes probe","pid":null}
+   (startedAt 1792089623526 ms is 2026-10-15 14:40:23 EDT, by date -d @1792089623)
