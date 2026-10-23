@@ -150,6 +150,18 @@ class TemplateTests(unittest.TestCase):
         self.assertIn(cut, decision)  # and T6 quotes it
         self.assertIn('"%s"' % t6.split('row gains: ', 1)[1].strip(), decision)  # T6 quotes FINISH.md
 
+    def test_room_at_post_s_own_additions_name_dio_meters_and_point_to_decision_t6(self):
+        # D7v's finding 9: beyond T6's words the row says whose `usage` line it copies, "from
+        # `dio meters`", and ends "(decision T6)", which points to the decision that quotes T6.
+        _, _, cells = table()
+        held = cells['room-at-post']['What it holds']
+        self.assertIn("the poster copies that account's `usage` line from `dio meters`, `measured` if "
+                      'its state is', held)
+        self.assertTrue(held.endswith('as the `credits` lines of `dio meters` name it (decision T6)'),
+                        held)
+        text = ' '.join(read(TEMPLATE).split())
+        self.assertIn('- **T6. `room-at-post` copies the `usage` line of `dio meters`.**', text)
+
     def test_no_line_of_the_template_ends_in_whitespace(self):
         # D5v's finding 10: git diff --check flagged a whitespace-only line.
         for number, line in enumerate(read(TEMPLATE).split('\n'), 1):
