@@ -1,6 +1,6 @@
 # 0.0-min: the finishing plan — ACCEPTED (2026-10-21)
 
-> **Status, 2026-10-21.** Proposed by the Team seat's D6 on `team/diogenes-0.0-finish-plan` from `a2e48db`, for a plan verifier and the merger. Scope: the merger's message that arrived at 09:20:10 EDT (`/home/randy/Team/META/diogenes/briefs/scope-D6-2026-10-21-from-diogenes_1.txt`), and `management_1`'s ledger choice, arrived 09:22:39 (step 7). [`MIN.md`](MIN.md) governs, unedited; a bare `:<n>` is its line at `a2e48db`. **Accepted 2026-10-21** by the merger's review, after D6v's PASS, and merged at `fbbbb7e`; the merger's rulings are in the last section. **Step 7 is merged** at `eac55d8` on 2026-10-22 ("Step 7's merge", at the end). The `docs/`, `src/` and `tests/` lines this file cites are `a2e48db`'s, where those trees are as at `29acd64`; step 7 moved some, so a brief that uses one re-resolves it by its text. **Step 8a is filed** at `8a45fe0` on 2026-10-22 ("Step 8a's merge", at the end): F5's condition holds, so 8b is built next.
+> **Status, 2026-10-21.** Proposed by the Team seat's D6 on `team/diogenes-0.0-finish-plan` from `a2e48db`, for a plan verifier and the merger. Scope: the merger's message that arrived at 09:20:10 EDT (`/home/randy/Team/META/diogenes/briefs/scope-D6-2026-10-21-from-diogenes_1.txt`), and `management_1`'s ledger choice, arrived 09:22:39 (step 7). [`MIN.md`](MIN.md) governs, unedited; a bare `:<n>` is its line at `a2e48db`. **Accepted 2026-10-21** by the merger's review, after D6v's PASS, and merged at `fbbbb7e`; the merger's rulings are in the last section. **Step 7 is merged** at `eac55d8` on 2026-10-22 ("Step 7's merge", at the end). The `docs/`, `src/` and `tests/` lines this file cites are `a2e48db`'s, where those trees are as at `29acd64`; step 7 moved some, so a brief that uses one re-resolves it by its text. **Step 8a is filed** at `8a45fe0` on 2026-10-22 ("Step 8a's merge", at the end): F5's condition holds, so 8b is built next. **Step 8b is merged** at `874a4dc` on 2026-10-23 ("Step 8b's merge", at the end): `dio who --agents`, opt-in by F5. It moved more of the `src/` and `tests/` lines this file cites, which a brief re-resolves by their text, as above.
 >
 > - **Numbering.** F1–F10 are this plan's decisions; U7 and U8 change `USING.md`, T6 the template; the build's own choices continue `src/README.md`'s at 23. No new experiment: a RESULT for DX-13 or DX-18 goes at the end of `meta/EXPERIMENTS.md`, with a pointer on the experiment's line.
 > - **Out:** all that :296 leaves to 0.1; DQ-26's scrub; the merger's four items (:156), commit A of step 7's branch.
@@ -192,3 +192,31 @@ The merger merged DX-18's listing half at `8a45fe0`. The Team seat's manager fil
 - **Still open, and not 8b's to settle:** DX-18's background half, a running background session's row, and the listing from sandboxed Bash (the RESULT's last bullet). 8b's tests cover a non-zero exit and the timeout.
 - **Corrected at the merge**, by same-line notes in the README and the RESULT: "`status` null and `pid` null" (each key is absent, which `jq` prints as null), and the listing's version. The commit message's 345 known paths are 351 on the committed tree, since the checker reads the index.
 - **Hours:** about 0.13 h of the Team manager's (07:22:30 to 07:30:31, by its log), in the 10.5 h row, and the author's two lines, under a second each. No verifier hours.
+
+### Step 8b's merge (`diogenes_2`, 2026-10-23)
+
+The merger merged build step 8b at `874a4dc`, after D8bv's PASS on `062d1f4` (`/home/randy/Team/REPORTS/D8bv-diogenes-agents-fallback-verify.md`) and its own check, which the merge commit's message gives. `src/README.md`'s decisions 36–43 are accepted. Commit A carries "Step 7's merge"'s three items, D7v's findings 1, 3 and 9. B carries "Step 8a's merge"'s readings: a row with no `pid` passed over, fixtures in 2.1.308's format, the citation for `CLAUDE_CONFIG_DIR` unset marked UNVERIFIED, and the name from the listing (decision 40). D8bv's nine findings, none blocking:
+
+- **Ruled, finding 6: decision 39 stands as built.** A listed row's `name` must be text with no control character, the strict parse's rule for a sessions file's `name` (`src/README.md`, "The strict parse"; decision 13). So `dio who`'s `NAME` column keeps one rule whatever a row's source, and `dio who` prints no escapes. A name outside that rule marks a format change, which `dio who` shows rather than guesses at (decision 2). The cost falls only on the opt-in fallback's rows for that one config dir; its sessions files' rows still show. Escaping per decision 20 stays the alternative, if M7b or 0.1 meets a real name with a control character. All 21 names matched at 8a.
+- **To the next diogenes code branch** (the gate's, `team/diogenes-0.0-gate`):
+  - a test of `parse_listing`'s top-level check: `null`, a number, `true` and `{}` each give `unknown (agents format)` (finding 1);
+  - a test of decision 37's interrupt path that pins `SIGKILL` (finding 2);
+  - tests of decision 41's two claims: a config dir whose sessions directory is missing is still listed, and a config dir under two roots lists once, with the first root's label (finding 4);
+  - `src/README.md` text:
+    - decision 37 says that a `SIGTERM` or `SIGHUP` to `dio` alone leaves the listing's process group running, since that group has a session of its own (finding 3);
+    - :29's "Every default path is under `~`" excepts the `--roles` default, the repository's own `meta/ROLES.md` (finding 7);
+    - the unmeasured list adds that 8a listed from a plain terminal, while `dio` lists with no terminal, `/dev/null` on stdin, pipes and a session of its own (finding 8).
+- **Stand as built:**
+  - `--a`, which argparse took as an abbreviation of `--address`, is now ambiguous, exit 2 (finding 5). Nothing documents or uses an abbreviation, and briefs cite `dio who --address <role>` in full (`USING.md` rule 6).
+  - Decision 43's read of the listing has no size cap. The 10 s bounds it in time, and the command is the account's own `claude` (Risk 3's class).
+- **The Team's own:** D8bv's loose object in the Team clone's `.git` (finding 9) is the Team seat's to leave or prune.
+- **The hand-off to M7b** (D6v's finding 4, T9), as D8b's report gives it:
+  - Each half runs `src/dio who --agents` once, from its repository root, not under `watch`, both halves at one Claude Code version. The Max half is the merger's.
+  - Where every live session has its sessions file, as at 8a, `--agents` adds no row and the table is `dio who`'s. The stopped background row is passed over.
+  - A `fallback: claude agents` row appears only for a session that no sessions file or roster entry covers. A config dir's `unknown (agents …)` row means that its listing failed or changed format.
+  - D8b and D8bv ran only `claude --version` (2.1.309), so no listing has run since 8a.
+- **Citations moved by 8b,** from `a2e48db`'s lines, by their text:
+  - the roster rule, `src/README.md`:44, is now :52;
+  - 8c's line, :166, is now :254, under "Not in this step";
+  - the gate's `--max` sites are now `src/dio`:1028 (`WATCH_CAP`, was :827), :1533–1538 (its help, was :1048–1053) and `src/README.md`:141–143 (was :122–124).
+- **Hours:** D8b 0.60 (04:21:52 to 04:57:46) against 8b's 0.5 plus A's items, and D8bv about 0.76 (05:05:54 to 05:51:39) of the verification row. The cut trigger is unaffected: its last checkpoint, the end of install, is past.
