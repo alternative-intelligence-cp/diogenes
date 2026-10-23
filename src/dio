@@ -1,9 +1,12 @@
 #!/usr/bin/python3 -IB
-"""dio: Diogenes 0.0-min, build steps 1, 3 and 7. Presence read from Claude Code's own sessions
-files, the seat's own background wait on a directory, and a read-only printer of both accounts'
-meters.
+"""dio: Diogenes 0.0-min, build steps 1, 3, 7 and 8b. Presence read from Claude Code's own
+sessions files, the seat's own background wait on a directory, a read-only printer of both
+accounts' meters, and, opt-in, Claude Code's own listing of its sessions.
 
     dio who                         every session in both config dirs, one row each
+    dio who --agents                the same, and each config dir's claude agents --json --all:
+                                    a row for each live listed session that no sessions file or
+                                    roster entry covers, labelled fallback: claude agents
     dio who --prefix P              live sessions whose name starts with P, by trailing _N
     dio who --address X [--highest] X resolved to a socket: a role on the role line,
                                     an exact live name, or a bare prefix (X_N)
@@ -16,8 +19,9 @@ meters.
                                     nothing, and exits 0 only when both usage lines read measured
 
 Standard library only (DQ-2). The plan of record is meta/roadmap/0.0/MIN.md, steps 1 and 3, and
-meta/roadmap/0.0/FINISH.md, step 7 (dio meters). src/README.md gives the layout, the output, the
-files written, the exit codes, and the choices each step made where the plan is silent.
+meta/roadmap/0.0/FINISH.md, steps 7 (dio meters) and 8b (dio who --agents). src/README.md gives
+the layout, the output, the files written, the exit codes, and the choices each step made where
+the plan is silent.
 
 Overrides. The defaults are MIN.md's and FINISH.md's, and every test points all of them elsewhere:
     --sessions-root LABEL=PATH  dio who and dio meters: a sessions directory and its account
@@ -43,16 +47,24 @@ Overrides. The defaults are MIN.md's and FINISH.md's, and every test points all 
                                 Repeatable. Given at all, it replaces both defaults,
                                 management=~/Workspace/MANAGEMENT/credits/LEDGER.md and
                                 libs=~/Workspace/REPOS/nitpick-libs/.internal/credits/LEDGER.md.
+    --agents-command PATH       dio who --agents: the command run as PATH agents --json --all,
+                                once per config dir. Default claude, found on the PATH of the
+                                environment main is given.
+dio who --agents' timeout, 10 s for each listing, is main's agents_timeout argument, as dio
+watch's clocks are its clock argument; no flag sets it.
 """
 
 import argparse
 import errno
+import functools
 import hashlib
 import json
 import math
 import os
 import re
+import signal
 import stat
+import subprocess
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -82,6 +94,11 @@ LIVE = ('live', 'live-idle')
 CHECKING = 'unknown (checking)'
 GONE = 'gone'
 FALLBACK_LABEL = 'fallback: register'
+AGENTS_LABEL = 'fallback: claude agents'  # FINISH.md step 8b: each row dio who --agents adds
+AGENTS_TIMEOUT = 10  # seconds each listing may take (FINISH.md step 8b): main's agents_timeout
+# A live listed row's status, the three that r1b:272 documents and FINISH.md step 8b takes, and
+# the state each gives while /proc/<pid>/stat exists.
+AGENTS_STATUS = {'busy': 'live', 'waiting': 'live', 'idle': 'live-idle'}
 
 READ_FLAGS = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC
 DIR_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC
@@ -627,7 +644,11 @@ class Row:
     @property
     def label(self):
         """Every line not from the sessions file says so."""
-        return '  ' + FALLBACK_LABEL if self.source == 'register' else ''
+        if self.source == 'register':
+            return '  ' + FALLBACK_LABEL
+        if self.source == 'agents':
+            return '  ' + AGENTS_LABEL
+        return ''
 
 
 def trailing_key(row):
@@ -655,15 +676,18 @@ def checked_state(cache, config_dir, pid, proc_start, socket, status):
     return cache.failed(config_dir, pid, proc_start, failure)
 
 
-def survey(roots, state_root, now=utc_now):
+def survey(roots, state_root, now=utc_now, agents=None):
     """One pass: every sessions file under every root, then the roster entries that no
-    strictly parsed sessions file covers, labelled as the fallback. Returns rows in order."""
+    strictly parsed sessions file covers, labelled as the fallback. With `agents` (dio who
+    --agents), a function that lists one config dir, it then lists each root's config dir once,
+    in the roots' order, and adds the rows listing_rows gives for it. Returns rows in order."""
     cache = GraceCache(state_root, now)
     if cache.problem:
         warn('the grace cache cannot be written, so a failed check stays "%s": %s'
              % (CHECKING, cache.problem))
     try:
         rows, covered, seen, accounts, order = [], set(), {}, {}, {}
+        registered = set()  # (config dir, pid) of every roster entry in dio register's format
         for label, root in roots:
             config_dir = os.path.dirname(os.path.abspath(root))
             accounts.setdefault(config_dir, label)
@@ -697,6 +721,7 @@ def survey(roots, state_root, now=utc_now):
                                     % errno.errorcode.get(outcome.errno, outcome.errno)))
         for entry in read_roster(state_root):
             config_dir, pid = entry['configDir'], entry['pid']
+            registered.add((config_dir, pid))
             if config_dir in seen:
                 seen[config_dir].add(pid)
             if (config_dir, pid) in covered:
@@ -711,8 +736,144 @@ def survey(roots, state_root, now=utc_now):
             cache.prune(config_dir, pids)
     finally:
         cache.close()
+    if agents is not None:
+        known = covered | registered
+        for config_dir, label in accounts.items():
+            rows += listing_rows(label, config_dir, agents(config_dir), known)
+    # A config dir's own row from its listing has `-` for a pid (listing_rows).
     rows.sort(key=lambda r: (order[r.account], trailing_key(r),
-                             int(r.pid) if len(r.pid) <= PID_DIGITS else 0))
+                             int(r.pid) if r.pid.isdigit() and len(r.pid) <= PID_DIGITS else 0))
+    return rows
+
+
+# ---------------------------------------------------------------- dio who --agents (FINISH.md step 8b)
+
+def default_config_dir():
+    """The default max root's config dir, ~/.claude, by survey's rule: its sessions directory's
+    parent, by abspath."""
+    return os.path.dirname(os.path.abspath(default_sessions_roots()[0][1]))
+
+
+def listing_environment(environ, config_dir):
+    """The environment one config dir's listing runs in: `environ`, as main has it, with
+    CLAUDE_CONFIG_DIR alone changed (decision 36). It is removed where the config dir is the
+    default max root's, ~/.claude, and set to the config dir otherwise, so dio never sets it to
+    ~/.claude, which "may not behave like leaving it unset" (meta/EXPERIMENTS.md:199)."""
+    child = dict(environ)
+    if config_dir == default_config_dir():
+        child.pop('CLAUDE_CONFIG_DIR', None)
+    else:
+        child['CLAUDE_CONFIG_DIR'] = config_dir
+    return child
+
+
+def signal_name(number):
+    try:
+        return signal.Signals(number).name
+    except ValueError:
+        return str(number)
+
+
+def run_listing(command, environ, timeout, config_dir):
+    """Run `<command> agents --json --all` for one config dir, and return its standard output as
+    bytes, or the reason it gave none: `agents exit <n>`, `agents signal <name>`, `agents
+    timeout` or `agents cannot start: <errno>` (decision 38).
+
+    The child runs in listing_environment's environment, with /dev/null on its stdin and pipes on
+    its stdout and stderr; its stderr is read and dropped. It runs in a session, and so a process
+    group, of its own. Past `timeout` seconds, or if dio is interrupted while it waits, dio sends
+    SIGKILL to that process group, then waits for the child (decision 37).
+    """
+    try:
+        child = subprocess.Popen([command, 'agents', '--json', '--all'], stdin=subprocess.DEVNULL,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 env=listing_environment(environ, config_dir),
+                                 start_new_session=True)
+    except OSError as e:
+        return 'agents cannot start: %s' % errno.errorcode.get(e.errno, e.errno)
+    with child:
+        try:
+            output, _ = child.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            return 'agents timeout'
+        finally:
+            if child.returncode is None:  # past the timeout, or dio interrupted
+                try:
+                    os.killpg(child.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                child.wait()
+    if child.returncode < 0:
+        return 'agents signal %s' % signal_name(-child.returncode)
+    if child.returncode > 0:
+        return 'agents exit %d' % child.returncode
+    return output
+
+
+def parse_listing(raw):
+    """FINISH.md step 8b's parse of a listing's output: [(pid, status, name)] for its live rows.
+
+    The output is a JSON array of objects, read by strict_json. A row with no pid key is not
+    live, and is passed over whatever else it holds: a stopped background session's row has no
+    pid or status key (DX-18's RESULT, step 8a). A row with one is live, and needs an integer pid
+    of 1 to 10 digits (decision 4's bound), a string kind, a status of busy, waiting or idle, and
+    a name that is text or null. Each key is tested by its presence, never by a null read from a
+    missing key, and other keys are ignored (decision 39). Raises ValueError.
+    """
+    listing = strict_json(raw)
+    if type(listing) is not list:
+        raise ValueError('not a JSON array')
+    live = []
+    for row in listing:
+        if type(row) is not dict:
+            raise ValueError('a row that is not a JSON object')
+        if 'pid' not in row:
+            continue
+        pid = row['pid']
+        if not (type(pid) is int and 0 < pid < 10 ** PID_DIGITS
+                and 'kind' in row and type(row['kind']) is str
+                and 'status' in row and type(row['status']) is str
+                and row['status'] in AGENTS_STATUS
+                and 'name' in row and (row['name'] is None or _text(row['name']))):
+            raise ValueError('a live row not in the format')
+        live.append((pid, row['status'], row['name'] or None))
+    return live
+
+
+def list_agents(command, environ, timeout, config_dir):
+    """One config dir's listing, run and parsed: its live rows as parse_listing gives them, or
+    the reason it gives none, `agents format` or one of run_listing's."""
+    output = run_listing(command, environ, timeout, config_dir)
+    if type(output) is str:
+        return output
+    try:
+        return parse_listing(output)
+    except ValueError:
+        return 'agents format'
+
+
+def listing_rows(label, config_dir, listing, known):
+    """The rows one config dir's listing adds, each labelled fallback: claude agents (FINISH.md
+    step 8b). A listing that failed or is not in the format gives one row for the dir,
+    `unknown (<reason>)`, with `-` for its pid. Otherwise each live listed row whose config dir
+    and pid no parsed sessions file or roster entry has (`known`) gives a row: `live-idle` for
+    `idle`, else `live`, while /proc/<pid>/stat exists, else `gone`, with no grace. Its name is the
+    listing's; its start is the process start that /proc/<pid>/stat gives, as for every row; it
+    has no version and no socket, so --address never resolves to it (decision 40)."""
+    if type(listing) is str:
+        return [Row(label, config_dir, '-', 'unknown (%s)' % listing, source='agents')]
+    rows = []
+    for pid, status, name in listing:
+        if (config_dir, pid) in known:
+            continue
+        try:
+            proc_start = proc_start_of(pid)
+        except OSError as e:
+            proc_start = None
+            state = 'unknown (no process check: %s)' % errno.errorcode.get(e.errno, e.errno)
+        else:
+            state = GONE if proc_start is None else AGENTS_STATUS[status]
+        rows.append(Row(label, config_dir, str(pid), state, name, proc_start, source='agents'))
     return rows
 
 
@@ -764,8 +925,9 @@ def bare_prefix(name):
 
 
 def resolve_address(rows, wanted, highest, role_file):
-    """MIN.md step 1's --address. Returns (exit status, stdout lines, stderr lines)."""
-    live = [r for r in rows if r.live and r.name]
+    """MIN.md step 1's --address. Returns (exit status, stdout lines, stderr lines). A row with no
+    socket, which only a claude agents listing gives, is never a candidate (FINISH.md step 8b)."""
+    live = [r for r in rows if r.live and r.name and r.socket]
     try:
         roles = read_roles(role_file)
     except FileNotFoundError:
@@ -1345,6 +1507,14 @@ def build_parser():
                           '(default ~/.local/share/diogenes)')
     who.add_argument('--roles', metavar='PATH',
                      help="the role file (default meta/ROLES.md in dio's own repository)")
+    who.add_argument('--agents', action='store_true',
+                     help='also run claude agents --json --all once per config dir, 10 s at most '
+                          'each, and show each live listed session that no sessions file or roster '
+                          'entry covers, labelled fallback: claude agents. Opt-in, since a listing '
+                          "may start Claude Code's background-session supervisor")
+    who.add_argument('--agents-command', metavar='PATH',
+                     help='with --agents, the command run in place of claude (default claude, '
+                          'found on PATH)')
     reg = commands.add_parser('register', help="the fallback: write this seat's roster entry "
                               'from $CLAUDE_CODE_MESSAGING_SOCKET')
     reg.add_argument('name', help="the seat's name")
@@ -1387,7 +1557,7 @@ def build_parser():
     return parser
 
 
-def main(argv=None, now=utc_now, environ=None, clock=None):
+def main(argv=None, now=utc_now, environ=None, clock=None, agents_timeout=AGENTS_TIMEOUT):
     environ = os.environ if environ is None else environ
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -1409,7 +1579,13 @@ def main(argv=None, now=utc_now, environ=None, clock=None):
         state_root = args.state_root or default_state_root()
         if args.highest and args.address is None:
             parser.who_parser.error('--highest needs --address')
-        rows = survey(args.sessions_root or default_sessions_roots(), state_root, now)
+        if args.agents_command is not None and not args.agents:
+            parser.who_parser.error('--agents-command needs --agents')
+        agents = None
+        if args.agents:
+            command = 'claude' if args.agents_command is None else args.agents_command
+            agents = functools.partial(list_agents, command, environ, agents_timeout)
+        rows = survey(args.sessions_root or default_sessions_roots(), state_root, now, agents)
         if args.address is not None:
             status, out, err = resolve_address(rows, args.address, args.highest,
                                                args.roles or default_role_file())
