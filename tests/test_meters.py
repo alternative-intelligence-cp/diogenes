@@ -627,6 +627,28 @@ class ContextTests(MetersBase):
         status, out, err = self.meters(*flags)
         self.assertEqual([r[2] for r in records(out, 'context')], ['Z-9', 'a-0', 'a-1', 'b-2'])
 
+    def test_lines_go_by_session_id_where_the_file_names_sort_another_way(self):
+        # Decision 24, D7v's finding 1: `-` and `_` sort either side of the `.` before `json`, so
+        # the files' names sort a-1, a, a_1, b while their ids sort a, a-1, a_1, b.
+        ids = ('a', 'a-1', 'a_1', 'b')
+        self.assertEqual(sorted(i + '.json' for i in ids), ['a-1.json', 'a.json', 'a_1.json', 'b.json'])
+        for session_id in reversed(ids):
+            self.put_context('team', session_id + '.json', context_record(session_id, self.now))
+        status, out, err = self.meters()
+        self.assertEqual([r[2] for r in records(out, 'context')], list(ids))
+
+    def test_two_context_directories_under_one_label_merge_into_one_run_by_session_id(self):
+        # Decision 24, D7v's finding 1: each directory's ids sort between the other's, so the
+        # run is not the first directory's lines followed by the second's.
+        for account, ids in (('max', ('b-1', 'd-1')), ('team', ('a-1', 'c-1'))):
+            for session_id in ids:
+                self.put_context(account, session_id + '.json', context_record(session_id, self.now))
+        flags = self.flags(contexts=()) + ['--context-root', 'one=' + self.context['max'],
+                                           '--context-root', 'one=' + self.context['team']]
+        status, out, err = self.meters(*flags)
+        self.assertEqual([r[1:3] for r in records(out, 'context')],
+                         [['one', 'a-1'], ['one', 'b-1'], ['one', 'c-1'], ['one', 'd-1']])
+
     def test_a_context_root_that_cannot_be_read_gives_one_unknown_line(self):
         not_a_directory = self.world.write(self.world.base, 'plain', b'')
         flags = self.flags(contexts=()) + ['--context-root', 'max=' + self.context['max'] + '-absent',
@@ -720,6 +742,15 @@ class CreditsTests(MetersBase):
         self.ledger_text('management', ['|  started|ended | job | model | turns | cost | status | rc',
                                         '| :--- | ---: | :-: | - | --- | --- | --- | --- |', row('j')])
         self.assertEqual(self.line('credits', 'management')[2:4], ['individual-org', 'uncorrected'])
+
+    def test_a_cell_loses_any_whitespace_around_it_tabs_and_no_break_spaces_included(self):
+        # Decision 33, as D7v's finding 3 has it worded: what str.strip() removes, not spaces alone.
+        header = HEADER.replace(' started ', '\tstarted\t').replace(' rc ', ' rc ')
+        separator = SEPARATOR.replace('|---|', '|\t--- |', 1)
+        self.ledger_text('management', [header, separator, row('tabbed (team)\t'), row('nbsp (team)')])
+        status, out, err = self.meters()
+        self.assertEqual([r[2:4] for r in records(out, 'credits') if r[1] == 'management'],
+                         [['team-org', 'uncorrected'], ['individual-org', 'uncorrected']])
 
     def test_a_row_of_7_or_9_cells_gives_a_ledger_format_line_and_the_other_rows_still_print(self):
         seven = '| a | b | c | d | e | f | g |'
