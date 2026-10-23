@@ -96,7 +96,7 @@ Nothing else is left; step 6's 0.75 h is spent within this pass.
 
 1. Decision 10: the pull and clones above.
 2. `probe-seat`: the merger commits it before `_4` and removes it in the gate's records commit.
-3. M3's task files, from `docs/TASK-TEMPLATE.md`, committed by the merger; probe-m sends the fourth after M2 (`meta/tasks/README.md`:11's exception). Their spec is this list at this plan's merge commit (F10); `room-at-post` by T6; `cross-account` is `no` for (3) only, `credits` being an account (`meta/PROJECT_RULES.md` §7).
+3. M3's task files, from `docs/TASK-TEMPLATE.md`, committed by the merger; probe-m sends the fourth after M2 (`meta/tasks/README.md`:11's exception). Their spec is this list at this plan's merge commit (F10); `room-at-post` by T6; `cross-account` is `no` for (3) only, `credits` being an account (`meta/PROJECT_RULES.md` §7). **Note 2026-10-23, `diogenes_1`, at its handoff:** (1)–(3) name the `poster` line's holders when this plan was written. Each task file's `posted-by` names the line's holder when it is posted, since a worker refuses any other (`meta/ROLES.md`; `meta/tasks/README.md`): `management_2` in `management_1`'s place since `29acd64`, and `diogenes_2` in `diogenes_1`'s since this note's commit.
    - (1) `management_1` to the Team seat: run M7a at the gate's sha and file its output. Acceptance: `TMPDIR=<scratch dir> /usr/bin/python3 -I -B tests/test_m7a_strace.py` prints `M7a: PASS`, exit 0.
    - (2) `management_1` to a credits job, the cut order's third item: write `git show a2e48db:meta/ROLES.md | sed -n '9,13p'` to the runner's output file. Acceptance: `cmp` of the two.
    - (3) `diogenes_1` to a Max subagent: the same with `git show a2e48db:docs/TASK-TEMPLATE.md | sed -n '18,28p'`.
