@@ -1,0 +1,11 @@
+```text
+spec: <tracked path> at <commit>
+posted-by: <the poster's name>
+assigned-to:
+cross-account: <yes or no>
+room-at-post: <measured, estimate or unknown>, <the figures and where they were read>
+acceptance: <the acceptance commands, and where the spec gives them>
+report:
+verified-by:
+merged-at:
+```
