@@ -1,0 +1,13 @@
+# 2026-10-24-template-lines-subagent: a Max subagent writes TASK-TEMPLATE.md's lines 18-28 at a2e48db
+
+```text
+spec: meta/roadmap/0.0/FINISH.md at 221e8d3 ("The scope's six items", item 3, task (3))
+posted-by: diogenes_2
+assigned-to:
+cross-account: no
+room-at-post: measured, dio meters' usage line for max at 2026-10-24T14:53:19Z, its tabs as spaces: usage max measured 2 8 2026-10-24T16:20:00Z 77 2026-10-29T00:00:00Z
+acceptance: cmp of the subagent's output file against `git show a2e48db:docs/TASK-TEMPLATE.md | sed -n '18,28p'` (FINISH.md, "The scope's six items", item 3 (3)); expected 11 lines, 303 B
+report:
+verified-by:
+merged-at:
+```
