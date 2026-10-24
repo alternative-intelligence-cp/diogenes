@@ -8,6 +8,6 @@ cross-account: yes
 room-at-post: unknown, team-org (the Team org's API credits; the job's ledger row carries " (team)", and a balance is 0.1's, FINISH.md:29)
 acceptance: cmp of the runner's output file against `git show a2e48db:meta/ROLES.md | sed -n '9,13p'` (FINISH.md, "The scope's six items", item 3 (2)); expected 5 lines, 91 B
 report: /home/randy/Workspace/MANAGEMENT/credits/out/dio-m3-task2-roles-lines-2026-10-24.md at MANAGEMENT 081ef1f9261c0e00d4d88caf5ebf292bc59e5598 (91 B, sha256 4a8688b1ca70155ed27e69ff332fdaa5e86fcc42634200a6d30bf320916c7c63)
-verified-by:
-merged-at:
+verified-by: diogenes_2 (re-ran the cmp at 2026-10-24T14:51:42Z: identical, 5 lines, 91 B, sha256 4a8688b1…)
+merged-at: e4cff8188bcea85d5c7ceeb3ca390c5e186d5742 on main
 ```
