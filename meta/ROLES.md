@@ -10,6 +10,7 @@ Who holds each role in this repository. `dio who --address <role>` resolves a ro
 team-seat = Ailp-team_18
 merger = diogenes_2
 poster = management_2, diogenes_2
+probe-seat = probe-t_3
 ```
 
 What each role is:
