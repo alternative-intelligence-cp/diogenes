@@ -1,0 +1,173 @@
+usage	max	stale (12 min)	720	7	2026-10-24T16:20:00Z	77	2026-10-29T00:00:00Z
+usage	team	stale (12 min)	720	4	2026-10-24T18:20:00Z	61	2026-10-28T07:00:00Z
+model_limits	max	{"fetched_at":1792846849,"fetched_at_iso":"2026-10-24T13:00:49Z","refresh":"run /usage in a Max-account session","account_check":"matches this session (same weekly reset)","limits":[{"model":"Fable","used_percentage":95,"severity":"critical","resets_at":1793232000}]}
+context	max	<uuid>	claude-skills-devTeam_51	3	21	measured
+context	max	<uuid>	management_3	-	50	measured
+context	max	<uuid>	statusline:nitpick-libs_21	71	388442	stale (6474 min)
+context	max	<uuid>	claude-skills-devTeam_53	-	9	measured
+context	max	<uuid>	statusline:nitpick-compiler_38	0	680823	stale (11347 min)
+context	max	<uuid>	nitpick-compiler_45	-	8	measured
+context	max	<uuid>	statusline:nitpick-fuzz_3	21	38592	stale (643 min)
+context	max	<uuid>	diogenes_2	76	55	measured
+context	max	<uuid>	statusline:diogenes_0	0	680739	stale (11345 min)
+context	max	<uuid>	nitpick-fuzz_5	-	27	measured
+context	max	<uuid>	statusline:nitpick-libs_22	49	223307	stale (3721 min)
+context	max	<uuid>	statusline:management_3	-	680466	stale (11341 min)
+context	max	<uuid>	statusline:management_0	0	680867	stale (11347 min)
+context	max	<uuid>	statusline:nitpick-libs_20	40	529701	stale (8828 min)
+context	max	<uuid>	nitpick-libs_25	43	15	measured
+context	max	<uuid>	statusline:nitpick-compiler_42	90	131929	stale (2198 min)
+context	max	<uuid>	statusline:nitpick-compiler_41	0	184127	stale (3068 min)
+context	max	<uuid>	management_4	-	48	measured
+context	max	<uuid>	nitpick-compiler_47	-	47	measured
+context	max	<uuid>	-	-	84695	stale (1411 min)
+context	max	<uuid>	statusline:nitpick-compiler_46	-	5031	stale (83 min)
+context	max	<uuid>	statusline:nitpick-compiler_46	-	5089	stale (84 min)
+context	max	<uuid>	statusline:nitpick-compiler_46	-	5330	stale (88 min)
+context	max	<uuid>	management_2	81	13	measured
+context	max	<uuid>	nitpick-fuzz_6	-	41	measured
+context	max	<uuid>	statusline:nitpick-compiler_41	-	680452	stale (11340 min)
+context	max	<uuid>	statusline:nitpick-compiler_43	81	38680	stale (644 min)
+context	max	<uuid>	statusline:diogenes_1	25	97500	stale (1625 min)
+context	max	<uuid>	statusline:nitpick-compiler_40	-	389731	stale (6495 min)
+context	max	<uuid>	statusline:nitpick-libs_24	74	37820	stale (630 min)
+context	max	<uuid>	statusline:nitpick-compiler_40	90	224633	stale (3743 min)
+context	max	<uuid>	statusline:nitpick-compiler_44	68	5239	stale (87 min)
+context	max	<uuid>	nitpick-fuzz_4	37	7	measured
+context	max	<uuid>	-	-	308107	stale (5135 min)
+context	max	<uuid>	statusline:nitpick-compiler_39	96	590317	stale (9838 min)
+context	max	<uuid>	nitpick-compiler_46	50	59	measured
+context	max	<uuid>	probe-m	5	15	measured
+context	max	<uuid>	statusline:nitpick-libs_23	0	184172	stale (3069 min)
+context	max	<uuid>	statusline:nitpick-compiler_45	-	5004	stale (83 min)
+context	max	<uuid>	diogenes_3	-	50	measured
+context	max	<uuid>	claude-skills-devTeam_52	-	15	measured
+context	max	<uuid>	diogenes_4	-	7	measured
+context	max	<uuid>	statusline:nitpick-compiler_41	-	594837	stale (9913 min)
+context	max	<uuid>	nitpick-libs_26	7	49	measured
+context	max	<uuid>	nitpick-libs_27	-	55	measured
+context	max	<uuid>	-	-	174493	stale (2908 min)
+context	max	<uuid>	statusline:nitpick-compiler_40	-	594868	stale (9914 min)
+context	max	<uuid>	statusline:nitpick-compiler_40	-	680763	stale (11346 min)
+context	max	<uuid>	statusline:nitpick-compiler_43	-	196844	stale (3280 min)
+context	max	<uuid>	statusline:nitpick-fuzz_2	13	197432	stale (3290 min)
+context	max	<uuid>	statusline:nitpick-compiler_47	-	5022	stale (83 min)
+context	max	<uuid>	statusline:management_1	73	224673	stale (3744 min)
+context	team	<uuid>	statusline:Ailp-team_16	72	84669	stale (1411 min)
+context	team	<uuid>	statusline:Ailp-team_10	56	527544	stale (8792 min)
+context	team	<uuid>	statusline:probe-t_4	5	181	measured
+context	team	<uuid>	Ailp-team_20	-	28	measured
+context	team	<uuid>	Ailp-team_19	-	56	measured
+context	team	<uuid>	statusline:Ailp-team_8	62	623922	stale (10398 min)
+context	team	<uuid>	statusline:Ailp-team_13	72	226114	stale (3768 min)
+context	team	<uuid>	statusline:Ailp-team_15	67	184226	stale (3070 min)
+context	team	<uuid>	statusline:Ailp-team_14	66	226058	stale (3767 min)
+context	team	<uuid>	statusline:Ailp-team_7	62	680279	stale (11337 min)
+context	team	<uuid>	statusline:probe-t_2	5	520	measured
+context	team	<uuid>	statusline:Ailp-team_17	73	38867	stale (647 min)
+context	team	<uuid>	Ailp-team_18	26	1	measured
+context	team	<uuid>	-	-	128295	stale (2138 min)
+context	team	<uuid>	statusline:probe-t_1	5	628	stale (10 min)
+context	team	<uuid>	statusline:Ailp-team_11	64	431914	stale (7198 min)
+context	team	<uuid>	statusline:probe-t_1	5	1022	stale (17 min)
+context	team	<uuid>	statusline:Ailp-team_12	66	271330	stale (4522 min)
+context	team	<uuid>	statusline:probe-t_3	5	225	measured
+context	team	<uuid>	statusline:Ailp-team_16	52	131842	stale (2197 min)
+context	team	<uuid>	statusline:Ailp-team_9	62	529776	stale (8829 min)
+credits	management	individual-org	uncorrected	| 2026-10-15 06:59:03 | 2026-10-15 07:00:44 | digest-skills-2026-10-15 | claude-opus-5-5 | 24/100 | $1.0919 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 06:59:03 | 2026-10-15 07:00:47 | digest-fuzz-2026-10-15 | claude-opus-5-5 | 30/100 | $1.0271 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 06:59:03 | 2026-10-15 07:01:53 | digest-compiler-2026-10-15 | claude-opus-5-5 | 44/120 | $1.4707 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 06:59:01 | 2026-10-15 07:04:31 | dio-rescope-0.0-2026-10-15 | claude-fable-5-1 | 40/150 | $3.2663 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 07:06:58 | 2026-10-15 07:10:41 | dio-rescope-verify-2026-10-15 | claude-opus-5-5 | 33/120 | $1.5739 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 07:06:58 | 2026-10-15 07:11:00 | author-decisions-2026-10-15 | claude-opus-5-5 | 59/150 | $1.9243 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 07:06:58 | 2026-10-15 07:11:26 | fuzz-next-2026-10-15 | claude-fable-5-1 | 51/150 | $3.4341 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 07:06:58 | 2026-10-15 07:12:23 | fuzz-registration-audit-2026-10-15 | claude-opus-5-5 | 55/150 | $2.8074 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 07:14:38 | 2026-10-15 07:17:40 | usage-calibration-2026-10-15 | claude-opus-5-5 | 35/150 | $1.1310 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 07:14:38 | 2026-10-15 07:19:11 | dio-rescope-revise-2026-10-15 | claude-fable-5-1 | 25/150 | $1.9815 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 07:14:38 | 2026-10-15 07:26:30 | fuzz-m12-brief-2026-10-15 | claude-opus-5-5 | 75/150 | $4.7392 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 07:27:40 | 2026-10-15 07:31:42 | dio-revise-verify-2026-10-15 | claude-opus-5-5 | 33/120 | $1.0836 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 07:29:19 | 2026-10-15 07:41:24 | d341-groundwork-2026-10-15 | claude-opus-5-5 | 162/250 | $6.5491 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 07:44:10 | 2026-10-15 07:47:11 | claude-code-advisor-research-2026-10-15 | claude-opus-5-5,claude-haiku-5-5 | 20/80 | $1.0759 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 07:42:09 | 2026-10-15 07:48:22 | dio-rescope-revise2-2026-10-15 | claude-fable-5-1 | 32/150 | $3.0972 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 07:48:22 | 2026-10-15 07:52:11 | dio-revise2-verify-2026-10-15 | claude-opus-5-5 | 37/120 | $1.1799 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 07:44:10 | 2026-10-15 07:52:57 | fuzz-m12-brief-verify-2026-10-15 | claude-opus-5-5 | 82/150 | $3.0438 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 07:52:45 | 2026-10-15 07:59:04 | dio-rescope-revise3-2026-10-15 | claude-fable-5-1 | 23/150 | $2.6964 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 07:59:04 | 2026-10-15 08:00:22 | dio-revise3-verify-2026-10-15 | claude-opus-5-5 | 17/100 | $0.4403 | ERROR | 1 |
+credits	management	individual-org	uncorrected	| 2026-10-15 07:53:54 | 2026-10-15 08:01:07 | fuzz-m12-brief-revise-2026-10-15 | claude-opus-5-5 | 34/150 | $1.8141 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 08:01:07 | 2026-10-15 08:01:08 | fuzz-m12-brief-reverify-2026-10-15 | claude-opus-5-5 | 1/100 | $0.0000 | ERROR | 1 |
+credits	management	individual-org	uncorrected	| 2026-10-15 08:23:20 | 2026-10-15 08:25:05 | dio-revise3-verify-2026-10-15 | claude-opus-5-5 | 21/100 | $0.4526 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 08:23:20 | 2026-10-15 08:26:24 | fuzz-m12-brief-reverify-2026-10-15 | claude-opus-5-5 | 37/100 | $1.1411 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 10:36:10 | 2026-10-15 10:46:32 | def253-groundwork-2026-10-15 | claude-opus-5-5 | 125/300 | $4.2143 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 10:36:09 | 2026-10-15 10:51:27 | def252-groundwork-2026-10-15 | claude-opus-5-5 | 141/300 | $7.5497 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 20:47:21 | 2026-10-15 20:54:38 | fuzz-m13-brief-verify-2026-10-15 | claude-opus-5-5 | 61/300 | $2.5198 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 21:01:56 | 2026-10-15 21:04:40 | fuzz-m13-brief-reverify-2026-10-15 | claude-opus-5-5 | 20/300 | $0.8469 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-15 21:08:29 | 2026-10-15 21:10:12 | fuzz-m13-brief-final-2026-10-15 | claude-opus-5-5 | 14/300 | $0.6002 | success | 0 |
+credits	management	individual-org	uncorrected	| 2026-10-16 08:44:12 | 2026-10-16 08:46:55 | dream-libs-2026-10-16 | claude-opus-5-5 | 26/60 | $0.9475 | success | 0 |
+credits	management	team-org	uncorrected	| 2026-10-21 07:49:20 | 2026-10-21 07:49:22 | pool-test-team-2026-10-21 (team) | claude-haiku-5-5 | 1/1 | $0.0018 | success | 0 |
+credits	management	team-org	uncorrected	| 2026-10-23 23:27:16 | 2026-10-23 23:33:09 | fuzz-m14-brief-verify-2026-10-23 (team) | claude-opus-5-5 | 59/150 | $1.6837 | success | 0 |
+credits	management	team-org	uncorrected	| 2026-10-23 23:37:18 | 2026-10-23 23:39:16 | fuzz-m14-brief-reverify-2026-10-23 (team) | claude-opus-5-5 | 14/80 | $0.5374 | success | 0 |
+credits	management	team-org	uncorrected	| 2026-10-23 23:41:50 | 2026-10-23 23:41:52 | dio-m3-post2-formattest-2026-10-23 (team) | claude-haiku-5-5 | 2/6 | $0.0021 | success | 0 |
+credits	management	team-org	uncorrected	| 2026-10-23 23:43:03 | 2026-10-23 23:43:05 | dio-m3-post2-formattest2-2026-10-23 (team) | claude-haiku-5-5 | 2/6 | $0.0010 | success | 0 |
+credits	management	team-org	uncorrected	| 2026-10-23 23:59:33 | 2026-10-24 00:05:30 | claude_md_digest (team) | claude-opus-5-5 | 10/40 | $1.4832 | success | 0 |
+credits	management	team-org	uncorrected	| 2026-10-24 00:06:42 | 2026-10-24 00:11:57 | claude_md_digest_v2 (team) | claude-opus-5-5 | 7/40 | $1.4125 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 04:01:14 | 2026-10-09 04:04:31 | landings-83-103-nitpick-tui | claude-sonnet-5-5 | 70/80 | $1.0281 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 04:06:46 | 2026-10-09 04:08:32 | landings-83-103-nitpick-parse | claude-sonnet-5-5 | 33/80 | $0.4056 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 04:08:32 | 2026-10-09 04:10:35 | landings-83-103-nitpick-sockets | claude-sonnet-5-5 | 51/80 | $0.5513 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 04:10:35 | 2026-10-09 04:12:36 | landings-83-103-nitpick-posix | claude-sonnet-5-5 | 51/80 | $0.6121 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 04:16:42 | 2026-10-09 04:19:14 | currency-pinned-versions-2026-10-09 | claude-sonnet-5-5,claude-haiku-5-5 | 71/80 | $0.7166 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 04:19:14 | 2026-10-09 04:32:35 | ecosystem-early-2026-10-09 | claude-sonnet-5-5 | 255/150 | $9.8973 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 04:40:50 | 2026-10-09 04:47:45 | docs-vs-code-nitpick-time-2026-10-09 | claude-sonnet-5-5 | 123/200 | $5.2878 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 04:47:45 | 2026-10-09 04:56:25 | docs-vs-code-nitpick-regex-2026-10-09 | claude-sonnet-5-5 | 145/200 | $6.7440 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 04:58:58 | 2026-10-09 05:02:38 | registry-strikes-draft-2026-10-09 | claude-sonnet-5-5 | 52/150 | $1.1249 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 05:02:38 | 2026-10-09 05:06:12 | playbook-fixes-draft-2026-10-09 | claude-sonnet-5-5 | 76/150 | $0.9942 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 07:31:23 | 2026-10-09 07:36:47 | e2-workbench-fixes-draft-2026-10-09 | claude-sonnet-5-5 | 94/150 | $1.4417 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 07:36:47 | 2026-10-09 07:41:17 | time-adoption-inventory-2026-10-09 | claude-sonnet-5-5 | 83/200 | $1.4716 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 10:58:11 | 2026-10-09 11:04:35 | plan-brief-regex-0.2.2-2026-10-09 | claude-sonnet-5-5 | 140/200 | $2.7065 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 11:04:35 | 2026-10-09 11:10:24 | plan-brief-time-0.3.3-2026-10-09 | claude-sonnet-5-5 | 127/200 | $2.6869 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 11:10:24 | 2026-10-09 11:15:04 | docs-vs-code-nitpick-fuzz-2026-10-09 | claude-sonnet-5-5 | 79/200 | $2.5800 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 12:21:43 | 2026-10-09 12:37:24 | plan-brief-sockets-0.0-2026-10-09 | claude-sonnet-5-5 | 169/200 | $7.4193 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 12:37:24 | 2026-10-09 12:51:08 | plan-brief-tui-0.0-2026-10-09 | claude-sonnet-5-5 | 180/200 | $7.7582 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 12:51:08 | 2026-10-09 13:03:37 | plan-brief-parse-0.0-2026-10-09 | claude-sonnet-5-5 | 156/200 | $5.8144 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-09 13:03:37 | 2026-10-09 13:15:12 | plan-brief-posix-0.0-2026-10-09 | claude-sonnet-5-5 | 152/200 | $5.0348 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 08:10:37 | 2026-10-10 08:15:52 | plan-brief-time-0.3.3-2026-10-10 | claude-sonnet-5-5 | 110/200 | $1.8107 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 08:15:52 | 2026-10-10 08:24:50 | repin-inventory-e50eaf4-2026-10-10 | claude-sonnet-5-5 | 181/200 | $2.7705 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 08:24:50 | 2026-10-10 08:29:26 | fuzz-docs-fixes-draft-2026-10-10 | claude-sonnet-5-5 | 91/200 | $1.2698 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 12:27:03 | 2026-10-10 12:27:05 | smoke-fable-2026-10-10 | claude-fable-5-1 | 1/1 | $0.1918 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 12:27:05 | 2026-10-10 12:27:07 | smoke-opus-2026-10-10 | claude-opus-5-5 | 1/1 | $0.0674 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 12:26:04 | 2026-10-10 12:27:47 | dio-r4-event-backends-2026-10-10 | claude-sonnet-5-5,claude-haiku-5-5 | 21/200 | $0.4047 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 12:26:10 | 2026-10-10 12:28:27 | dio-r7-research-cache-and-memory-2026-10-10 | claude-sonnet-5-5,claude-haiku-5-5 | 30/200 | $0.4721 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 12:26:08 | 2026-10-10 12:28:28 | dio-r6-prior-art-2026-10-10 | claude-sonnet-5-5,claude-haiku-5-5 | 25/200 | $0.7587 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 12:26:06 | 2026-10-10 12:29:00 | dio-r5-access-and-sandboxes-2026-10-10 | claude-sonnet-5-5,claude-haiku-5-5 | 22/200 | $0.3601 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 12:26:12 | 2026-10-10 12:29:05 | dio-r8-requirements-from-practice-2026-10-10 | claude-sonnet-5-5 | 64/200 | $0.7010 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 12:26:02 | 2026-10-10 12:29:14 | dio-r3-gpt-and-standards-2026-10-10 | claude-sonnet-5-5,claude-haiku-5-5 | 56/200 | $0.8295 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 12:26:00 | 2026-10-10 12:29:38 | dio-r2-gemini-antigravity-2026-10-10 | claude-sonnet-5-5,claude-haiku-5-5 | 46/200 | $0.8743 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 12:25:58 | 2026-10-10 12:31:43 | dio-r1-claude-code-2026-10-10 | claude-sonnet-5-5,claude-haiku-5-5 | 46/200 | $1.0649 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 12:33:41 | 2026-10-10 12:47:06 | dio-r1b-claude-code-deep-2026-10-10 | claude-opus-5-5,claude-haiku-5-5 | 80/250 | $4.2446 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 12:47:15 | 2026-10-10 13:05:27 | dio-s1-synthesis-2026-10-10 | claude-fable-5-1 | 30/150 | $9.8321 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 13:06:05 | 2026-10-10 13:13:00 | dio-c1-critique-2026-10-10 | claude-opus-5-5 | 14/150 | $2.1469 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 13:14:16 | 2026-10-10 13:23:51 | dio-r1c-claude-code-mods-2026-10-10 | claude-opus-5-5,claude-haiku-5-5 | 49/200 | $2.5834 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 13:14:18 | 2026-10-10 13:23:56 | dio-r2b-antigravity-deep-2026-10-10 | claude-opus-5-5,claude-haiku-5-5 | 43/200 | $1.8694 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 13:13:14 | 2026-10-10 13:33:23 | dio-s2-revision-2026-10-10 | claude-fable-5-1 | 18/150 | $12.2518 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 13:43:42 | 2026-10-10 13:50:53 | dio-r9-mcp-agent-mail-2026-10-10 | claude-opus-5-5,claude-haiku-5-5 | 29/200 | $1.6223 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 13:43:44 | 2026-10-10 14:03:53 | dio-p1-cycle-0.0-plan-2026-10-10 | claude-fable-5-1 | 42/150 | $11.3429 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 14:05:32 | 2026-10-10 14:14:24 | dio-v1-verify-0.0-plan-2026-10-10 | claude-opus-5-5 | 33/150 | $2.4846 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 14:14:58 | 2026-10-10 14:38:05 | dio-p2-cycle-0.0-plan-fixes-2026-10-10 | claude-fable-5-1 | 36/150 | $11.1182 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 14:38:23 | 2026-10-10 14:44:38 | dio-v2-reverify-0.0-plan-2026-10-10 | claude-opus-5-5 | 23/150 | $1.7318 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 14:45:16 | 2026-10-10 15:04:01 | dio-p3-cycle-0.0-plan-fixes-2026-10-10 | claude-fable-5-1 | 23/150 | $11.0282 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 15:04:24 | 2026-10-10 15:09:05 | dio-v3-reverify-0.0-plan-2026-10-10 | claude-opus-5-5 | 27/150 | $1.7213 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 15:10:51 | 2026-10-10 15:12:07 | dio-o1-overview-2026-10-10 | claude-opus-5-5 | 13/80 | $0.5053 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 15:10:53 | 2026-10-10 15:18:23 | plan-brief-regex-0.2.3-2026-10-10 | claude-sonnet-5-5 | 123/200 | $2.0860 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 15:20:00 | 2026-10-10 15:23:33 | vm-runner-review-draft-2026-10-10 | claude-sonnet-5-5 | 68/200 | $0.5498 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-10 15:20:02 | 2026-10-10 15:28:46 | ecosystem-owed-drafts-2026-10-10 | claude-sonnet-5-5 | 172/200 | $2.5050 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-15 07:04:47 | 2026-10-15 07:10:53 | docs-vs-code-nitpick-regex-0.2-2026-10-15 | claude-sonnet-5-5 | 119/200 | $2.5475 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-15 07:04:45 | 2026-10-15 07:11:14 | docs-vs-code-nitpick-time-0.3-2026-10-15 | claude-sonnet-5-5 | 113/200 | $2.4042 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-15 07:04:49 | 2026-10-15 07:11:45 | plan-brief-time-0.4-2026-10-15 | claude-sonnet-5-5 | 139/200 | $2.2530 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-15 07:04:51 | 2026-10-15 07:13:18 | plan-brief-regex-0.3-2026-10-15 | claude-sonnet-5-5 | 149/200 | $2.6048 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-15 07:18:19 | 2026-10-15 07:27:11 | posix-editions-2017-2024-2026-10-15 | claude-opus-5-5,claude-haiku-5-5 | 140/200 | $2.6477 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-15 07:29:30 | 2026-10-15 07:39:40 | plan-brief-sockets-0.0-2026-10-15 | claude-sonnet-5-5 | 177/200 | $3.9154 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-15 07:29:28 | 2026-10-15 07:41:43 | plan-brief-parse-0.0-2026-10-15 | claude-sonnet-5-5 | 199/200 | $5.3684 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-15 13:19:57 | 2026-10-15 13:34:21 | ecosystem-2026-10-15 | claude-sonnet-5-5 | 236/300 | $7.7755 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-15 17:45:46 | 2026-10-15 17:53:20 | w29-rules-draft-2026-10-15 | claude-sonnet-5-5 | 121/200 | $1.8092 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-16 01:12:10 | 2026-10-16 01:13:45 | parse-research-vectors-2026-10-16 | claude-sonnet-5-5,claude-haiku-5-5 | 29/160 | $0.1878 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-16 01:12:09 | 2026-10-16 01:16:14 | parse-research-guidance-2026-10-16 | claude-sonnet-5-5,claude-haiku-5-5 | 36/160 | $0.4135 | success | 0 |
+credits	libs	individual-org	uncorrected	| 2026-10-16 01:12:08 | 2026-10-16 01:17:06 | parse-research-defects-2026-10-16 | claude-sonnet-5-5,claude-haiku-5-5 | 65/200 | $1.6143 | success | 0 |

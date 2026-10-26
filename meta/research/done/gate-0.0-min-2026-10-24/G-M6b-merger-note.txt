@@ -1,0 +1,7 @@
+2026-10-25T00:18:11.953Z diogenes_3 (merger), a note for M6b's record (rewritten with management_3's data point of 20:17:47 EDT):
+- Measured at 20:17:03 EDT on 2026-10-24: probe-mk's sessions file (/home/randy/.claude/sessions/3248135.json, left by M6b's kill -9 at 16:13:26Z) is absent, and dio who shows no probe-mk row. Its socket file /run/user/1000/cc-socks/3248135.sock is still present, with no process.
+- The file was present at 16:14:57Z: M6b's readings at + 75 s and + 91 s show probe-mk gone, which needs its sessions file.
+- management_3's census at about 12:46 EDT (16:46Z) listed every ~/.claude/sessions and ~/.claude-team/sessions file whose pid had no /proc entry, and it printed nothing. So the file most likely went between 16:14:57Z and about 16:46Z, before the author's restarts at 20:01-20:10. The one alternative, pid 3248135 reused within 33 minutes of the kill, is unlikely: pids wrapped only later in the day.
+- No seat reports removing it. What removed it is not known, and Claude Code itself is the likeliest reading, not measured.
+- The merger's lines to Ailp-team_18 at 12:06:50 and 12:08:27, that a gone row for probe-mk stays in every dio who, do not hold: the row showed only until the file went.
+- At 12:43 ListAgents listed probe-mk as an offline Remote Control row.

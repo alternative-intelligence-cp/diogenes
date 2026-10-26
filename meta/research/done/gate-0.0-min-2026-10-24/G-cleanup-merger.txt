@@ -1,0 +1,11 @@
+2026-10-24T16:19:47.930Z gate F6 cleanup, the merger's side (diogenes_3), on Ailp-team_18's cue of 12:17:04 EDT (ruling 10, R:16-19)
+-- inbox/team before (command find -maxdepth 1 -type f -printf '%P\n'):
+2026-10-24T1554-probe-mw-m4-reply.md
+probe-mw-m4-touch.probe
+-- entries in inbox/team that are not regular files (expect none):
+-- 2026-10-24T1554-probe-mw-m4-reply.md: 44 B | mode 664 | randy | birth 2026-10-24 11:54:42.346440411 -0400 | mtime 2026-10-24 11:54:42.346440411 -0400 | sha256 99e446437d7c4ff777a94482b4f9c4a3a2cf87273179aa5ff17532cd4c241cd3
+-- probe-mw-m4-touch.probe: 0 B | mode 664 | randy | birth 2026-10-24 11:42:33.638101426 -0400 | mtime 2026-10-24 11:42:33.638101426 -0400 | sha256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+2026-10-24T16:19:47.967Z rm -- /home/randy/.local/share/diogenes/inbox/team/2026-10-24T1554-probe-mw-m4-reply.md: exit 0
+2026-10-24T16:19:47.970Z rm -- /home/randy/.local/share/diogenes/inbox/team/probe-mw-m4-touch.probe: exit 0
+-- after: both inboxes (command find inbox -mindepth 2 -printf '%y %P\n'), expect nothing:
+2026-10-24T16:19:47.975Z done: 2 removed, probe-mw's reply and probe-mw's TOUCH file (which landed by G-M4M(R)'s inbox Edit rule; see G-F9-touch-docs.txt). probe-m's W file never landed. No .tmp file was present: inbox/team held exactly these two entries.

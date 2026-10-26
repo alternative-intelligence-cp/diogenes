@@ -1,0 +1,20 @@
+ListAgents from diogenes_2 [d92166] (Claude Code 2.1.307), called right after src/dio who --agents ended at 2026-10-24T14:38:59.828Z. Peer sessions (19):
+management_4 [32dfcc] interactive idle
+management_3 [bea6d2] interactive idle
+nitpick-fuzz_4 [516d46] interactive idle
+nitpick-libs_26 [acff58] interactive idle
+management_2 [abdc11] interactive shell
+diogenes_4 [9eb35b] interactive idle
+nitpick-compiler_45 [a79b75] interactive idle
+nitpick-fuzz_6 [f1161b] interactive idle
+probe-m [74c2ed] interactive idle
+nitpick-libs_27 [265f94] interactive idle
+nitpick-compiler_47 [2cd395] interactive idle
+claude-skills-devTeam_53 [dee2ae] interactive idle
+nitpick-compiler_46 [787fab] interactive shell
+diogenes_3 [f073c5] interactive idle
+nitpick-libs_25 [027bc7] interactive idle
+nitpick-fuzz_5 [35803e] interactive idle
+claude-skills-devTeam_52 [d7ed06] interactive idle
+claude-skills-devTeam_51 [1ddcac] interactive idle
+Fuzzing session milestone M11 [169d76] cloud idle

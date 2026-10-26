@@ -1,0 +1,21 @@
+Gate plan §2 DX-13 step 9: each wake turn's cache tokens, from probe-tx's transcript (local only, ruling 8;
+the session id is not written here). Per distinct assistant message: entries, cache_read_input_tokens,
+cache_creation_input_tokens (a missing key reads 'missing'). Written 2026-10-25T06:49:52Z.
+X1 wake (G's turn from=task at 2026-10-24T16:26:30Z; the turn's prompt at 2026-10-24T16:26:26.509Z): 4 assistant messages, 5 entries; cache_read sum 193858, cache_creation sum 1054
+  X1.1: entries 2, cache_read 48022, cache_creation 366
+  X1.2: entries 1, cache_read 48388, cache_creation 231
+  X1.3: entries 1, cache_read 48619, cache_creation 210
+  X1.4: entries 1, cache_read 48829, cache_creation 247
+X2 wake (G's turn from=task at 2026-10-24T18:30:02Z; the turn's prompt at 2026-10-24T18:30:00.063Z): 7 assistant messages, 8 entries; cache_read sum 312675, cache_creation sum 53102
+  X2.1: entries 1, cache_read 0, cache_creation 51424
+  X2.2: entries 1, cache_read 51424, cache_creation 175
+  X2.3: entries 2, cache_read 51599, cache_creation 195
+  X2.4: entries 1, cache_read 51794, cache_creation 585
+  X2.5: entries 1, cache_read 52379, cache_creation 180
+  X2.6: entries 1, cache_read 52559, cache_creation 361
+  X2.7: entries 1, cache_read 52920, cache_creation 182
+X2b wake (G's turn from=task at 2026-10-25T06:30:21Z; the turn's prompt at 2026-10-25T06:30:18.639Z): 4 assistant messages, 5 entries; cache_read sum 161161, cache_creation sum 54237
+  X2b.1: entries 1, cache_read 0, cache_creation 53538
+  X2b.2: entries 1, cache_read 53538, cache_creation 175
+  X2b.3: entries 2, cache_read 53713, cache_creation 197
+  X2b.4: entries 1, cache_read 53910, cache_creation 327

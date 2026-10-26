@@ -1,0 +1,5 @@
+2026-10-24 11:44:51.894797303 -0400 /home/randy/.local/share/diogenes/inbox/max/2026-10-24T1544-probe-td-m4-trial-1.md
+2026-10-24 11:47:07.353149120 -0400 /home/randy/.local/share/diogenes/inbox/max/2026-10-24T1547-probe-td-m4-trial-2.md
+2026-10-24 11:48:30.581174475 -0400 /home/randy/.local/share/diogenes/inbox/max/2026-10-24T1548-probe-td-m4-trial-3.md
+2026-10-24 11:49:55.308842532 -0400 /home/randy/.local/share/diogenes/inbox/max/2026-10-24T1549-probe-td-m4-trial-4.md
+2026-10-24 11:51:32.120167235 -0400 /home/randy/.local/share/diogenes/inbox/max/2026-10-24T1551-probe-td-m4-trial-5.md
