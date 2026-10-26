@@ -1,6 +1,6 @@
 # 0.0-min: the finishing plan — ACCEPTED (2026-10-21)
 
-> **Status, 2026-10-21.** Proposed by the Team seat's D6 on `team/diogenes-0.0-finish-plan` from `a2e48db`, for a plan verifier and the merger. Scope: the merger's message that arrived at 09:20:10 EDT (`/home/randy/Team/META/diogenes/briefs/scope-D6-2026-10-21-from-diogenes_1.txt`), and `management_1`'s ledger choice, arrived 09:22:39 (step 7). [`MIN.md`](MIN.md) governs, unedited; a bare `:<n>` is its line at `a2e48db`. **Accepted 2026-10-21** by the merger's review, after D6v's PASS, and merged at `fbbbb7e`; the merger's rulings are in the last section. **Step 7 is merged** at `eac55d8` on 2026-10-22 ("Step 7's merge", at the end). The `docs/`, `src/` and `tests/` lines this file cites are `a2e48db`'s, where those trees are as at `29acd64`; step 7 moved some, so a brief that uses one re-resolves it by its text. **Step 8a is filed** at `8a45fe0` on 2026-10-22 ("Step 8a's merge", at the end): F5's condition holds, so 8b is built next. **Step 8b is merged** at `874a4dc` on 2026-10-23 ("Step 8b's merge", at the end): `dio who --agents`, opt-in by F5. It moved more of the `src/` and `tests/` lines this file cites, which a brief re-resolves by their text, as above.
+> **Status, 2026-10-21.** Proposed by the Team seat's D6 on `team/diogenes-0.0-finish-plan` from `a2e48db`, for a plan verifier and the merger. Scope: the merger's message that arrived at 09:20:10 EDT (`/home/randy/Team/META/diogenes/briefs/scope-D6-2026-10-21-from-diogenes_1.txt`), and `management_1`'s ledger choice, arrived 09:22:39 (step 7). [`MIN.md`](MIN.md) governs, unedited; a bare `:<n>` is its line at `a2e48db`. **Accepted 2026-10-21** by the merger's review, after D6v's PASS, and merged at `fbbbb7e`; the merger's rulings are in the last section. **Step 7 is merged** at `eac55d8` on 2026-10-22 ("Step 7's merge", at the end). The `docs/`, `src/` and `tests/` lines this file cites are `a2e48db`'s, where those trees are as at `29acd64`; step 7 moved some, so a brief that uses one re-resolves it by its text. **Step 8a is filed** at `8a45fe0` on 2026-10-22 ("Step 8a's merge", at the end): F5's condition holds, so 8b is built next. **Step 8b is merged** at `874a4dc` on 2026-10-23 ("Step 8b's merge", at the end): `dio who --agents`, opt-in by F5. It moved more of the `src/` and `tests/` lines this file cites, which a brief re-resolves by their text, as above. **The gate's record is merged** at `b3ed34e` on 2026-10-25 ("The gate's merge", at the end): every gated row passes, and the code part follows on the gate's branch.
 >
 > - **Numbering.** F1–F10 are this plan's decisions; U7 and U8 change `USING.md`, T6 the template; the build's own choices continue `src/README.md`'s at 23. No new experiment: a RESULT for DX-13 or DX-18 goes at the end of `meta/EXPERIMENTS.md`, with a pointer on the experiment's line.
 > - **Out:** all that :296 leaves to 0.1; DQ-26's scrub; the merger's four items (:156), commit A of step 7's branch.
@@ -220,3 +220,58 @@ The merger merged build step 8b at `874a4dc`, after D8bv's PASS on `062d1f4` (`/
   - 8c's line, :166, is now :254, under "Not in this step";
   - the gate's `--max` sites are now `src/dio`:1028 (`WATCH_CAP`, was :827), :1533–1538 (its help, was :1048–1053) and `src/README.md`:141–143 (was :122–124).
 - **Hours:** D8b 0.60 (04:21:52 to 04:57:46) against 8b's 0.5 plus A's items, and D8bv about 0.76 (05:05:54 to 05:51:39) of the verification row. The cut trigger is unaffected: its last checkpoint, the end of install, is past.
+
+### The gate's merge (`diogenes_3`, 2026-10-25)
+
+The merger merged the gate's record, F8, at `b3ed34e`, after GF8v's PASS on `7641f15` (`/home/randy/Team/REPORTS/GF8v-diogenes-0.0-gate-filing-verify.md`) and its own check, which the merge commit's message gives. The record is `meta/research/done/gate-0.0-min-2026-10-24/`, and DX-13's and DX-3's RESULTs are at `meta/EXPERIMENTS.md`'s end. **Every gated row passes** by the Pass column (:198–206) applied to the record: M1, M2, M3, M4, M5, M7a and M7b; M6 on its re-run, M6b; and M8 on its gated part, zero hand relays between Claude accounts, with the Gemini relays not stated. The `docs/` and `src/` lines below are `b3ed34e`'s. The record's five open points, as ruled:
+
+- **TOUCH (open point 1).** The sandbox leg ran, and it measured no refusal. G-M4M's and G-M4MR's inbox rule, `Edit(//home/randy/.local/share/diogenes/inbox/**)`, gives sandboxed Bash write access there, as `allowWrite` would: lines 664 and 754 of the sandboxing page, quoted in the record's `G-F9-touch-docs.txt`. The plan's "expected to be refused" was the merger's error, in line 65 of its rulings file (the record's README, "The files"). The record keeps the leg as it stands: the file landed, and no variant tested a closed path. U8 takes it, below.
+- **U74 (open point 2).** `USING.md` takes a note for `dontAsk` seats, in U8. At its one try, under G-M4TR, the printf line as written (`USING.md`:74) was refused before it ran. One `printf … > <path>` with no subshell or `set -C` ran in the same probe.
+- **M6 (open point 3).** M6's verdict is PASS, on M6b.
+  - probe-mk read `unknown (checking)` from the first reading after the exit to + 59.8 s, and `gone` at + 74.9 s by CTL's times, inside `MIN.md`:203's 75 s.
+  - probe-tx read `live-idle` at all seven readings, and no other row changed.
+  - The first run measured none of `MIN.md`:203's states. Its plain `kill` let probe-mi exit cleanly, the exit removed probe-mi's sessions file, and its row was gone by the first reading.
+  - probe-mk's `gone` row did not last either. Its leftover sessions file went within about half an hour, and no seat reports removing it (`G-M6b-merger-note.txt`).
+  - U9 takes both, below.
+- **Sandboxed `dio who` (open point 4).** No fix in 0.0, as the merger ruled at 10:09 on 2026-10-24.
+  - From sandboxed Bash, `dio who` confirms no session: the process check fails for every row, and the grace cache can't be written (DX-3's RESULT, (d)).
+  - Seats run `dio who` unsandboxed, as M1's did. `dio watch` uses neither the check nor the cache.
+  - `USING.md` says so, in U9. A single message naming the sandbox, in place of one error line per row, is 0.1's if wanted.
+- **U7, `--max` and `probe-seat` (open point 5).** `probe-seat` leaves `meta/ROLES.md` in this records commit (`FINISH.md`:98). U7 and `--max` are ruled below.
+
+**The code part,** on `team/diogenes-0.0-gate`, waits for next week (`management_3`, 18:02:40 on 2026-10-24). Its rulings:
+
+- **`--max`: 3000 s stands, and is no longer provisional.** The sites are `src/dio`:1028 (`WATCH_CAP`) and :1533–1538 (its help), `src/README.md`:141–143, `USING.md`:105 and `HelpTests`.
+  - Both exits woke an idle probe (DX-13's RESULT), so the cap decides only what each re-arm costs.
+  - The 10-minute wake read its context from the cache. So the probe's cache lived past 10 minutes: it was the hour-long cache, not the 5-minute one.
+  - The 2-hour and 12-hour wakes came after the cache's life and wrote the context again: 51 424 and 53 538 tokens for the probe. For the working seat that F7 names, that is about 467 k (`EXPERIMENTS.md`:155).
+  - 3000 s re-arms inside the hour, with 10 minutes to spare.
+- **U7.** `USING.md`:114's open sentence gives the legs' answer, citing DX-13's RESULT. Exit 2 woke the probe 6.5 s after its directory was removed. Exit 1 woke it 5 s after each cap, at 2 hours and at 12. A re-arm past the cache's life writes the context again.
+- **U8.** Caveats (ii) and (iii), `USING.md`:45–46.
+  - **(ii) becomes *Measured*.** Without the inbox's `Edit(…)` rule, the Write tool was refused under `dontAsk` (M2's W, under G-M2R), and nothing landed. With the rule, the Write tool made M4's reply (G-M4MR).
+  - (ii) also takes the gate's stop. Under `dontAsk`, at 2.1.310, a Bash write needs a permission rule for its target too. The results directory showed it (the record's R variants), and the inbox follows by the same rule. So a `dontAsk` seat needs the inbox's rule for either route.
+  - **(iii)'s Write-tool route becomes *Measured*.** Sandboxed probe-mw made its reply with the Write tool, and probe-td's watch woke on the reply's final name.
+  - (iii)'s "because its Bash can't" holds only for a seat without (ii)'s rule, since that rule opens the zone to sandboxed Bash too (open point 1). No closed path was measured.
+  - The printf line, `USING.md`:74, takes open point 2's note. Such a seat makes the file with the Write tool, as `USING.md`:95 says, after checking that no file has that name.
+- **U9, new at this merge.** `USING.md`'s `dio who` part gains three measured notes:
+  - A clean exit, or a plain `kill`, removes the session's file, so its row leaves at once. Only a `kill -9` or a crash shows `unknown (checking)` and then `gone` (M6, M6b).
+  - A `gone` row lasts only until the leftover file is removed (M6b's note).
+  - From sandboxed Bash every row reads `unknown (checking)`, so run `dio who` unsandboxed (open point 4).
+- **D8bv's findings 1–4, 7 and 8** stay carried to that code commit, as "Step 8b's merge" gives them.
+
+**GF8v's seven findings,** none blocking:
+
+- **Folded in,** as same-line notes in the record's README:
+  - finding 2: 22 named rows, not 21 (its :194);
+  - finding 3: + 74.9 s and + 90.1 s (its :133).
+- **Left as they stand:**
+  - finding 1: the README names no model, but `meta/PROJECT_RULES.md`:86's header rule is for the digests that `meta/research/done/README.md`:3 describes;
+  - finding 4: the 6.5 s and the 3.0 s are two events, the turn's line and the wake's prompt;
+  - finding 5: the versions' source is given once, at the README's :30;
+  - finding 6: `FINISH.md`:80 does name the Max seats' `dio`. The settings lines were :65 and :68 at M2, and they are :66 and :69 now, since each file gained the `autoCompactWindow` key;
+  - finding 7: process only.
+
+**Also recorded:**
+
+- `EXPERIMENTS.md`:144 and the 10-minute leg's two files have held a session id since 2026-10-16, before ruling 8. They stay as filed, since the history keeps the id either way. If DQ-26 opens the repository, its scrub of absolute paths takes these too.
+- **Hours:** GF8 about 0.5 h (dispatched 20:02:46, its commit at 20:33:12), and GF8v under 0.5 h (from 20:36:37 to READY at 21:07:11).

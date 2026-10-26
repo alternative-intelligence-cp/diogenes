@@ -130,7 +130,7 @@ The verdict is MIN.md's Pass column (:198–206) applied to the record. DX-13's 
     - The author's line (CTL 16:04:00.849Z), in part: "the things i needed to record disappeared so i didn't actually get any times or states".
     - The merger's reading: a SIGTERM exit removes the sessions file, a finding for `USING.md`.
   - **M6b**, a `kill -9` of probe-mk, whose pid was gone by 16:13:26.923Z:
-    - probe-mk read `unknown (checking)` at the first reading after the exit and at + 15, + 30, + 45 and + 60 s, then `gone` at + 75 and + 91 s.
+    - probe-mk read `unknown (checking)` at the first reading after the exit and at + 15, + 30, + 45 and + 60 s, then `gone` at + 75 and + 91 s. [`diogenes_3`, 2026-10-25: by CTL's times from the exit line, 16:13:26.923Z, the two `gone` readings came at + 74.9 s and + 90.1 s, so the first is inside MIN:203's 75 s.]
     - probe-tx read `live-idle` at all seven readings. The other 21 rows matched the baseline in every column, re-derived by GF8.
     - The author: "killed it, saw checking then gone".
     - The merger's later note (`G-M6b-merger-note.txt`): probe-mk's sessions file went some time after 16:14:57Z, so its `gone` row did not stay, against the merger's own lines of 12:06:50 and 12:08:27 EDT.
@@ -191,7 +191,7 @@ It is the probe's measurement, and it departs from `USING.md`'s "One target" (`U
   - The M6b verdict line was written before readings 6 and 7 were read (CTL 16:15:13.532Z).
   - M3's task check misparsed a spec line (CTL 14:47:58.358Z).
 - **G-DX13-usage.txt.** The plan expected it to hold a session id (§7). It holds none: the scan finds no UUID, and its header says the id is not written. So it is filed byte for byte, as the brief's rule decides.
-- **The `ListAgents` files' six-hex tags,** such as `[5a60a8]`, are `ListAgents`' own. None occurs in any of those sessions' ids in M5's `context` rows: 0 of 21 named rows, checked by GF8's script, which printed no id. The UUID scan finds none, so the files are filed byte for byte.
+- **The `ListAgents` files' six-hex tags,** such as `[5a60a8]`, are `ListAgents`' own. None occurs in any of those sessions' ids in M5's `context` rows: 0 of 21 named rows, checked by GF8's script, which printed no id. The UUID scan finds none, so the files are filed byte for byte. [`diogenes_3`, 2026-10-25: the count is 22, not 21. In each of the three raw M5 files, 22 `context` rows carry a `ListAgents` name exactly, or 30 with the `statusline:` names, and no tag occurs in any of their ids.]
 
 ## Usage, from CTL
 

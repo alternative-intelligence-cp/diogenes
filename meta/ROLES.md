@@ -10,7 +10,6 @@ Who holds each role in this repository. `dio who --address <role>` resolves a ro
 team-seat = Ailp-team_23
 merger = diogenes_3
 poster = management_3, diogenes_3
-probe-seat = probe-t_3
 ```
 
 What each role is:
@@ -18,4 +17,4 @@ What each role is:
 - `team-seat`: the Team seat's manager session, on the Team account. It builds on `team/diogenes-<task>` branches and never pushes `main`.
 - `merger`: diogenes' one writer of `main`. It verifies and merges branches, and commits the task files and this file.
 - `poster`: the holders whose task files the merger commits and the Team seat works.
-- Gate M1 adds `probe-seat` for its overlap round.
+- Gate M1 adds `probe-seat` for its overlap round. The gate's records commit took the line out again (`roadmap/0.0/FINISH.md`:98).
