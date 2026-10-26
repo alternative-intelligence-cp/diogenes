@@ -1,0 +1,6 @@
+2026-10-24T15:24:27.290Z gate M3, the merger's record (diogenes_2):
+  (1) Team, posted by management_2 (10:45:48): task 1a9ea93; Team branch d5d9d8a; merge 7074e04; records 757d340; verified-by diogenes_2 (M7a re-run at d5d9d8a, PASS, 14:50:28Z)
+  (2) credits job, posted by management_2: task 03c48e1 (room-at-post in T6's form on its word, 10:47:40); claim e1896d5 and report 9e643c5 committed for it; merge e4cff81; records 93284ec; verified-by diogenes_2 (literal cmp, identical, 14:51:42Z)
+  (3) Max subagent, posted by diogenes_2: task fe8e7a0; claim 877bbb7; report 34c84ba (output filed beside the task file); merge c15ab2b; records 65ba07f; verified-by management_2 (cmp, identical, 14:54:51Z)
+  (4) posted by probe-m (its P step, reached diogenes_2 at 11:22): task 40f645c; Ailp-team_18 at 11:23:40: 'refused: poster. meta/tasks/2026-10-24-probe-m-poster.md at 40f645c: posted-by probe-m is not on the poster line of meta/ROLES.md at 40f645c.' No line filled, no branch made (T5)
+  M3 PASS: 3 of 3 with spec, assigned-to, report and verified-by (not the reporter) filled; the fourth refused as refused: poster before any work

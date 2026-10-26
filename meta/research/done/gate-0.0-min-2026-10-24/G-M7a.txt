@@ -1,0 +1,11 @@
+command: strace -f -e trace=openat,open,readlink -o <scratch>/m7a.trace /home/randy/Team/WT/diogenes-m7a-gate/src/dio who --sessions-root max=<scratch>/cfg-max/sessions --sessions-root team=<scratch>/cfg-team/sessions --state-root <scratch>/state
+dio exit status: 0
+trace lines: 110 | open/openat lines: 107 | open/openat naming .key: 0
+evidence lines (123.json, the torn file, any .key, every readlink):
+  2980097 readlink("/usr/bin/python3", "python3.12", 4096) = 10
+  2980097 readlink("/usr/bin/python3.12", 0x7ffe90fb1ec0, 4096) = -1 EINVAL (Invalid argument)
+  2980097 openat(3, "123.json", O_RDONLY|O_NONBLOCK|O_NOFOLLOW|O_CLOEXEC) = -1 ELOOP (Too many levels of symbolic links)
+  2980097 openat(3, "7777777.json", O_RDONLY|O_NONBLOCK|O_NOFOLLOW|O_CLOEXEC) = 5
+row 123: unknown (refused: symlink)
+row 7777777: unknown (sessions format: 2.1.301)
+M7a: PASS

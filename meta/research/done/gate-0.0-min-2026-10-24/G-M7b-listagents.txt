@@ -1,0 +1,5 @@
+This session is Ailp-team_18 [5a60a8] — the name other sessions use to message it (it is not listed below; a message to it would be a message to yourself).
+
+Peer sessions (2):
+  Ailp-team_20 [7d1786]  ·  interactive  ·  idle  ·  started 10h ago
+  Ailp-team_19 [c72fb2]  ·  interactive  ·  idle  ·  started 1d ago

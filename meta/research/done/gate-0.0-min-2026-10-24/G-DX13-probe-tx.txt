@@ -1,0 +1,15 @@
+2026-10-24T16:08:08Z turn from=author
+2026-10-24T16:16:21Z turn from=Ailp-team_18
+2026-10-24T16:16:23Z X1 reading
+2026-10-24T16:16:28Z done X1 armed
+2026-10-24T16:26:30Z turn from=task
+2026-10-24T16:26:35Z X1 watch_exit=2 out=[dio watch: during the watch, no such directory: /home/randy/Team/PROBES/dio-probe/results/G-DX13-exit2 | [exited with code 2]]
+2026-10-24T16:29:55Z turn from=Ailp-team_18
+2026-10-24T16:29:57Z X2 reading
+2026-10-24T16:30:02Z done X2 armed
+2026-10-24T18:30:02Z turn from=task
+2026-10-24T18:30:13Z X2 watch_exit=1 out=[REARM /home/randy/Team/PROBES/dio-probe/results/G-DX13-cap | [exited with code 1]]
+2026-10-24T18:30:16Z X2 reading-2
+2026-10-24T18:30:20Z X2 re-armed 43200
+2026-10-25T06:30:21Z turn from=task
+2026-10-25T06:30:27Z X2b watch_exit=1 out=[REARM /home/randy/Team/PROBES/dio-probe/results/G-DX13-cap | [exited with code 1]]
