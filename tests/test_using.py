@@ -166,27 +166,112 @@ class RuleTests(unittest.TestCase):
                 self.assertIn(quote, ' '.join(decision.split()))  # and U1 quotes it
         self.assertIn('11:11:52', decision)
 
-    def test_each_caveat_is_min_md_s_and_carries_its_label(self):
+    def test_each_caveat_is_min_md_s_and_carries_its_labels_ii_and_iii_part_by_part_from_the_gate(self):
+        # FINISH.md:118 and "The gate's merge" (U8): (ii) and (iii) take the gate's labels part by
+        # part, departing from MIN.md's note, which keeps its own, as U1 departs from rule 4.
         note = section(read(MIN), '- **Note 2026-10-15, Team seat (D2b):** for `docs/USING.md`',
                        '**The task template, required lines, in order:**')
         caveats = section(read(USING), '### Four caveats', '## Messages')
-        labels = {'(i)': ('Measured from working seats', '*Measured*'),
-                  '(ii)': ('This is documented, not measured', '*Documented, not measured*'),
-                  '(iii)': ('This is by the documentation, not measured',
-                            '*By the documentation, not measured*'),
-                  '(iv)': (None, '*Documented*: `MIN.md`\'s note gives (iv) no label of its own')}
-        for mark, (min_label, label) in labels.items():
+        labels = {'(i)': ('Measured from working seats', ['*Measured*']),
+                  '(ii)': ('This is documented, not measured', [
+                      '**The `Edit(…)` rule:** *Measured* both ways, once each, at the gate.',
+                      "(the record's M2, W)", "(`REPLY write=written`; the record's M4, \"The round\")",
+                      '**"never `Write(...)`":** *Documented, not measured*: no leg at the gate '
+                      'tested a `Write(...)` rule.',
+                      "**The gate's stop:** under dontAsk, a sandboxed Bash write needs a permission "
+                      'rule for its target too. *Measured* at 2.1.310 on the results directory',
+                      '(the record\'s "The stop, and the R variants")',
+                      '**The inbox:** *A reading, not a measurement*: it follows by the same rule, so '
+                      "a dontAsk seat needs the inbox's rule for either route, the Write tool or Bash.",
+                      '*Documented, not measured*. Related:']),
+                  '(iii)': ('This is by the documentation, not measured', [
+                      '**The Write-tool route:** *Measured* once, at the gate.',
+                      '*Measured* once with the rule: probe-mw\'s sandboxed `touch` into '
+                      '`inbox/team/` exited 0, and the file landed (M4\'s TOUCH, 15:42:39Z)',
+                      'The reason is *Documented*', "the record's `G-F9-touch-docs.txt`",
+                      "**Without the rule, its Bash's refusal:** *By the documentation, not measured*",
+                      'No closed path was measured']),
+                  '(iv)': (None, ['*Documented*: `MIN.md`\'s note gives (iv) no label of its own'])}
+        for mark, (min_label, ours_labels) in labels.items():
             with self.subTest(caveat=mark):
                 # The bold lead ends at the ** that a space follows: (ii)'s lead holds a ** in code.
-                lead = r'\*\*%s (.+?)\*\*(?= )(.*)$' % re.escape(mark)
+                lead = r'\*\*%s (.+?)\*\*(?= )' % re.escape(mark)
                 ours = re.search(r'^- ' + lead, caveats, re.M)
-                theirs = re.search(r'^  - ' + lead, note, re.M)
+                theirs = re.search(r'^  - ' + lead + r'(.*)$', note, re.M)
                 self.assertEqual(ours.group(1), theirs.group(1))  # the caveat itself, word for word
-                self.assertIn(label, ours.group(2))
+                block = re.search(r'^- \*\*%s .*?(?=^- \*\*\(|\Z)' % re.escape(mark), caveats,
+                                  re.M | re.S).group(0)
+                for label in ours_labels:
+                    self.assertIn(label, ' '.join(block.split()))
                 if min_label:
-                    self.assertIn(min_label, theirs.group(2))
+                    self.assertIn(min_label, theirs.group(2))  # MIN.md's note keeps its own label
                 else:
                     self.assertNotIn('measured', theirs.group(2).lower())
+        intro = ' '.join(section(caveats, '### Four caveats', '- **(i)').split())
+        self.assertIn("(ii) and (iii) are labelled part by part by what the gate measured, departing "
+                      "from the note's labels as decision U1 departs from rule 4, by the merger's U8",
+                      intro)
+
+    def test_u7_gives_the_gate_legs_answer_for_exits_1_and_2_labelled_measured_with_its_source(self):
+        # FINISH.md's U7 ("The gate's merge"), citing DX-13's RESULT; the cache's hour is a
+        # reading, not a measurement (the merger's term 2 on D9's brief).
+        text = ' '.join(read(USING).split())
+        part = section(text, '- **What is measured.**', "### The seat's rule")
+        for words in ('The gate\'s legs answered what that left (`MIN.md`, step 3\'s note, "For the '
+                      'gate"): an exit with status 1 or 2 wakes an idle seat in the same way. '
+                      '*Measured* once each, on probe-tx',
+                      "(DX-13's RESULT (the gate's exit-2, 2-hour and overnight legs))",
+                      'exit 2 woke it 6.5 s after its watched directory was removed',
+                      'exit 1 woke it 5 s after each cap, at 2 hours and at 12 hours',
+                      "a re-arm past the cache's life writes the context again",
+                      '51 424 and 53 538 tokens',
+                      'That the cache lives an hour is a reading, not a measurement'):
+            with self.subTest(words=words):
+                self.assertIn(words, part)
+        self.assertNotIn('is left to the gate', part)
+
+    def test_u9_s_three_notes_on_dio_who_carry_their_labels_and_sources(self):
+        # FINISH.md's U9 ("The gate's merge"), with the merger's term 4 on D9's brief: a plain
+        # kill measured once (M6's first run), kill -9 once (M6b), a crash not, nor the remover.
+        text = ' '.join(read(USING).split())
+        part = section(text, '## Presence: `dio who`', '### Removing a roster entry')
+        for words in ('**A session that ends cleanly, or by a plain `kill`, leaves no row.**',
+                      "For a plain `kill`: *Measured* once, at the gate's first M6 run (the "
+                      "record's M6)",
+                      'For a clean exit: *Measured* once, untimed',
+                      'Only a `kill -9` or a crash leaves the file, and then the row reads '
+                      '`unknown (checking)` and then `gone`: *Measured* once for a `kill -9`, by '
+                      'M6b (probe-mk, Claude Code 2.1.310); a crash is *not measured*.',
+                      '**A `gone` row lasts only until the leftover file is removed.** *Measured* '
+                      "once, by M6b's note (the record's `G-M6b-merger-note.txt`)",
+                      'What removed it is *not measured*',
+                      '**Run `dio who` unsandboxed.** From sandboxed Bash, every row reads '
+                      '`unknown (checking)`',
+                      "*Measured* at the gate's F9 legs",
+                      "DX-3's RESULT, (d)"):
+            with self.subTest(words=words):
+                self.assertIn(words, part)
+
+    def test_the_printf_line_carries_the_gates_note_for_dontask_seats(self):
+        # FINISH.md's U8, open point 2 (U74): the line as written was refused at its one try under
+        # dontAsk, and such a seat makes the file with the Write tool, after checking the name.
+        text = ' '.join(read(USING).split())
+        part = section(text, '### The one `printf` line', '### Made in place')
+        for words in ('**A seat started in dontAsk can have the line itself refused.** *Measured* '
+                      'once, at the gate (the record\'s "U74\'s outcome, for U8")',
+                      '(G-M4TR), on Claude Code 2.1.310, ran the line once as written, and it was '
+                      'refused before it ran',
+                      'no file landed',
+                      'one `printf … > <path>` with no subshell and no `set -C` ran five times',
+                      'Such a seat makes the file with the Write tool instead, as the next bullet '
+                      'says, after checking that no file has that name.'):
+            with self.subTest(words=words):
+                self.assertIn(words, part)
+        notes = re.findall(r'^- \*\*(.+?)\*\*', section(read(USING), '### The one `printf` line',
+                                                       '### Made in place'), re.M)
+        self.assertEqual(notes[notes.index('A seat started in dontAsk can have the line itself '
+                                           'refused.') + 1],
+                         'A seat whose Bash cannot write the zone,')  # "the next bullet"
 
     def test_the_file_carries_the_six_items_from_min_md_s_notes_and_its_decisions(self):
         text = ' '.join(read(USING).split())
@@ -204,7 +289,8 @@ class RuleTests(unittest.TestCase):
 
     def test_the_write_tool_route_is_labelled_measured_with_what_was_measured(self):
         # MIN.md's note after step 5 (D5v's finding 11), with the merger's term: the claim is
-        # labelled, says what was measured, and claims nothing for a strict-sandbox seat.
+        # labelled and says what was measured. From a sandboxed seat, the gate's M4 measured the
+        # route once (FINISH.md, "The gate's merge", U8), and not whether a temporary file came first.
         text = ' '.join(read(USING).split())
         route = section(text, '- **A seat whose Bash cannot write the zone,**', '### Made in place')
         for words in ('*Measured* by the merger at 04:54:26 on 2026-10-18, under Claude Code 2.1.301, '
@@ -212,8 +298,10 @@ class RuleTests(unittest.TestCase):
                       'created `<name>.tmp.<pid>.<12 hex digits>` in that directory',
                       'renamed it to `<name>` 8 ms later',
                       'a watch that polls in that window wakes under the temporary name',
-                      'It was not measured from a seat inside a strict sandbox',
-                      "the gate's M4 measures that route"):
+                      'From a sandboxed seat, the seat this route is for, the gate measured it once',
+                      "woke on the reply's final name, not a `<name>.tmp.<pid>.<12 hex digits>` name",
+                      'Whether that tool made a temporary file first, in a sandboxed seat, is not '
+                      'measured'):
             with self.subTest(words=words):
                 self.assertIn(words, route)
         self.assertIn('it writes `<name>.tmp.<pid>.<12 hex digits>` in the target directory and '
