@@ -1025,7 +1025,7 @@ def register(name, state_root, config_dir, pid, environ, now):
 # ---------------------------------------------------------------- dio watch (MIN.md step 3)
 
 WATCH_EVERY = 60  # --every's default: MIN.md step 3's `--every 60`
-WATCH_CAP = 3000  # --max's default, 50 minutes: provisional until the gate's DX-13 legs
+WATCH_CAP = 3000  # --max's default, 50 minutes: settled by the gate's DX-13 legs
 WATCH_LIMIT = 86400  # the most whole seconds --every or --max takes: one day
 # A name not present at the start wakes the watch only if its mtime is later than the start
 # less this margin. The kernel stamps mtimes from a coarse clock that trails time.time_ns(),
@@ -1532,10 +1532,8 @@ def build_parser():
                      help='seconds between polls, 1 to %d (default %d)' % (WATCH_LIMIT, WATCH_EVERY))
     wat.add_argument('--max', metavar='S', type=_seconds, default=WATCH_CAP,
                      help='the cap: after S seconds with no new file, print REARM <dir> and exit 1, '
-                          'so the seat re-arms; 1 to %d (default %d, provisional until the gate: '
-                          'a background loop is measured to 10 minutes only, and the time past '
-                          "10 minutes is untested until the gate's 2-hour leg)"
-                          % (WATCH_LIMIT, WATCH_CAP))
+                          "so the seat re-arms; 1 to %d (default %d, settled by the gate's "
+                          'DX-13 legs)' % (WATCH_LIMIT, WATCH_CAP))
     met = commands.add_parser('meters', help="both accounts' usage and context files and the "
                               'credits ledgers, read only', description=METERS_HELP)
     met.add_argument('--max-usage', metavar='PATH',

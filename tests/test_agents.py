@@ -1,9 +1,12 @@
 """dio who --agents (FINISH.md step 8b): the `claude agents --json --all` fallback. Each config
 dir's listing, with CLAUDE_CONFIG_DIR removed for the default ~/.claude and set to the dir
-otherwise; the rows it adds for live sessions that no sessions file or roster entry covers, and
-none for those they cover; the stopped row with no pid key, passed over; output not in the
-format, a non-zero exit, a signal, the timeout and a command that cannot be started, each one row
-for its dir; --address never reaching a listed row; and no process at all without --agents.
+otherwise, once per config dir with its first root's label, and still for a dir whose sessions
+directory is missing; the rows it adds for live sessions that no sessions file or roster entry
+covers, and none for those they cover; the stopped row with no pid key, passed over; output not
+in the format, a top-level value that is not an array among it, a non-zero exit, a signal, the
+timeout and a command that cannot be started, each one row for its dir; an interrupt while dio
+waits, which kills the listing's process group with SIGKILL and then reaps the child; --address
+never reaching a listed row; and no process at all without --agents.
 
 The listing comes from a fake claude, a /bin/sh script the test writes into its temporary tree,
 which records each run's pid, its arguments, its stdin, and CLAUDE_CONFIG_DIR alone, by name:
@@ -13,7 +16,9 @@ interactive rows and its stopped background row) and from r1b:272 (a running bac
 documented, not measured), never from a real listing. Every run that could start a process names
 the fake with --agents-command or has PATH hold only the fake's directory, so no test reaches a
 real claude. No test runs strace, and none sleeps: the timeout is main's agents_timeout, 0.2 s
-in its test, and only the fake waits.
+in its test, and only the fake waits. The interrupt is a real SIGINT to the test's own process,
+in which dio runs: the fake sends it to its parent when the test, inside dio's call that waits
+on the listing, has read the fake's `ready` line and sent it SIGUSR1.
 
 Run from the repository root, with TMPDIR set to a scratch directory (tests/README.md):
 
@@ -45,7 +50,9 @@ FAKE = r'''#!/bin/sh
 # appends one line to the log: its pid, its arguments, its stdin (/dev/null or other), and
 # CLAUDE_CONFIG_DIR alone, by name: set and its value, or unset and -. It then acts for the config
 # dir that variable names, else the test's ~/.claude. If agents.hang is there, it starts a child
-# that waits, records that child's pid, and waits itself, so only dio's timeout ends it. It writes
+# that waits, records that child's pid, and waits itself, so only dio's timeout ends it. If
+# agents.interrupt is there, it sets SIGUSR1 to send SIGINT to its parent, dio's process, starts
+# and records such a child, prints `ready` and waits, so only dio's kill ends it. It writes
 # agents.err to its stderr and agents.json to its stdout, ends by SIGTERM if agents.signal is
 # there, and exits with the number in agents.exit, else 0.
 if [ -n "${CLAUDE_CONFIG_DIR+x}" ]; then
@@ -58,6 +65,14 @@ printf '%s\t%s\t%s\t%s\t%s\n' "$$" "$*" "$stdin" "$state" "$value" >> @LOG@
 if [ -e "$config/agents.hang" ]; then
     /bin/sleep 300 &
     printf '%s\n' "$!" > "$config/agents.child"
+    wait
+fi
+if [ -e "$config/agents.interrupt" ]; then
+    trap 'kill -INT $PPID' USR1
+    /bin/sleep 300 &
+    printf '%s\n' "$!" > "$config/agents.child"
+    printf 'ready\n'
+    wait
     wait
 fi
 if [ -e "$config/agents.err" ]; then /bin/cat "$config/agents.err" >&2; fi
@@ -142,9 +157,11 @@ class AgentsBase(unittest.TestCase):
 
     # -- building
 
-    def list_in(self, config_dir, listing=None, status=None, err=None, hang=False, killed=False):
+    def list_in(self, config_dir, listing=None, status=None, err=None, hang=False, killed=False,
+                interrupt=False):
         """What the fake does for `config_dir`: print `listing` (rows as JSON, or bytes as they
-        are), write `err` to its stderr, exit with `status`, end by SIGTERM, or wait until killed."""
+        are), write `err` to its stderr, exit with `status`, end by SIGTERM, wait until killed,
+        or, with `interrupt`, print `ready`, send dio SIGINT on SIGUSR1, and wait until killed."""
         os.makedirs(config_dir, exist_ok=True)
         if listing is not None:
             data = listing if isinstance(listing, bytes) else json.dumps(listing).encode()
@@ -153,7 +170,8 @@ class AgentsBase(unittest.TestCase):
             self.world.write(config_dir, 'agents.exit', b'%d\n' % status)
         if err is not None:
             self.world.write(config_dir, 'agents.err', err)
-        for name, wanted in (('agents.hang', hang), ('agents.signal', killed)):
+        for name, wanted in (('agents.hang', hang), ('agents.signal', killed),
+                             ('agents.interrupt', interrupt)):
             if wanted:
                 self.world.write(config_dir, name, b'')
 
@@ -396,6 +414,44 @@ class ConfigDirTests(AgentsBase):
                                      '--state-root', self.world.state)
         self.assertEqual([run[4] for run in self.runs()[2:]], [self.team_dir])
 
+    def test_two_roots_under_one_config_dir_list_it_once_with_the_first_roots_label(self):
+        # Decision 41 (D8bv's finding 4): two sessions directories under one config dir, in
+        # both orders of their labels, so the label is the first root's, not the last one's
+        # and not the one that sorts first.
+        pid = self.world.live_process()
+        self.list_in(self.team_dir, [interactive(pid, 'probe-t_5', 'busy')])
+        second = self.world.make('cfg-team', 'sessions-b')
+        for first, then in (('one', 'two'), ('two', 'one')):
+            with self.subTest(first=first):
+                before = len(self.runs())
+                status, out, err = self.main('who', '--agents', '--agents-command', self.fake,
+                                             '--sessions-root', first + '=' + self.world.team_root,
+                                             '--sessions-root', then + '=' + second,
+                                             '--state-root', self.world.state)
+                self.assertEqual((status, err), (0, ''))
+                self.assertEqual([run[3:] for run in self.runs()[before:]], [('set', self.team_dir)])
+                rows = table(out)
+                self.assertEqual(rows[(first, str(pid))]['STATE'], 'live' + LABEL)
+                self.assertNotIn((then, str(pid)), rows)
+
+    def test_a_config_dir_whose_sessions_directory_is_missing_is_still_listed(self):
+        # Decision 41 (D8bv's finding 4): the listing is the fallback for a config dir whose
+        # sessions directory cannot be read, so a missing one is listed after its warning.
+        config_dir = os.path.join(self.world.base, 'cfg-new')
+        pid = self.world.live_process()
+        self.list_in(config_dir, [interactive(pid, 'probe-n_1', 'idle')])
+        root = os.path.join(config_dir, 'sessions')
+        status, out, err = self.main('who', '--agents', '--agents-command', self.fake,
+                                     '--sessions-root', 'max=' + self.world.max_root,
+                                     '--sessions-root', 'new=' + root,
+                                     '--state-root', self.world.state)
+        self.assertEqual(status, 0)
+        self.assertEqual(err, 'dio: cannot read the new sessions directory %s: '
+                              'No such file or directory\n' % root)
+        self.assertFalse(os.path.exists(root))
+        self.assertEqual([run[3:] for run in self.runs()], [('set', self.max_dir), ('set', config_dir)])
+        self.assertEqual(table(out)[('new', str(pid))]['STATE'], 'live-idle' + LABEL)
+
     def test_the_child_gets_mains_environ_with_only_claude_config_dir_changed(self):
         # T3, read from dio's own call, since the fake records CLAUDE_CONFIG_DIR alone. With no
         # --agents-command the command is claude, found on the PATH of main's environ: the fake.
@@ -466,6 +522,21 @@ class FormatTests(AgentsBase):
                 self.assertEqual(len([line for line in out.splitlines() if line.endswith(LABEL)]), 1)
                 self.assertEqual(rows[('team', str(self.world.busy))]['STATE'], 'live')
 
+    def test_null_a_number_true_or_an_object_at_the_top_level_gives_one_agents_format_row(self):
+        # parse_listing's top-level check (D8bv's finding 1). Without it, null, a number, true
+        # and false would raise TypeError, a traceback, and {} would read as an empty listing.
+        cases = {'null': b'null', 'a number': b'5', 'true': b'true', 'false': b'false',
+                 'an empty object': b'{}', 'a string': b'"probe-t_5"'}
+        for case, content in cases.items():
+            with self.subTest(case=case):
+                with self.assertRaises(ValueError):
+                    dio.parse_listing(content)
+                self.list_in(self.team_dir, content)
+                status, out, err = self.agents()
+                self.assertEqual((status, err), (0, ''))
+                self.assertEqual(table(out)[('team', '-')]['STATE'], 'unknown (agents format)' + LABEL)
+                self.assertEqual(len([line for line in out.splitlines() if line.endswith(LABEL)]), 1)
+
     def test_rows_with_no_pid_key_are_passed_over_whatever_else_they_hold(self):
         no_pid = {k: v for k, v in running_background(1, 'probe-bg_3').items() if k != 'pid'}
         self.list_in(self.team_dir, [{}, {'kind': 7}, {'status': 'shell'}, {'name': 7, 'state': 'stopped'},
@@ -530,6 +601,64 @@ class FailureTests(AgentsBase):
             return False
         finally:
             os.close(fd)
+
+    def kill_at_cleanup(self, pid):
+        """Hold a pidfd on `pid` and send SIGKILL through it when the test ends, so a test that
+        fails leaves nothing running, and a pid used again meanwhile is never signalled."""
+        fd = os.pidfd_open(pid)
+
+        def end():
+            try:
+                signal.pidfd_send_signal(fd, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            finally:
+                os.close(fd)
+        self.addCleanup(end)
+
+    def test_an_interrupt_while_dio_waits_kills_the_group_with_sigkill_then_waits_for_the_child(self):
+        # Decision 37's interrupt path (D8bv's finding 2). A real SIGINT reaches dio's process,
+        # the test's own, while dio waits on the listing: once the fake has printed `ready`, the
+        # test sends it SIGUSR1 from inside dio's call to communicate, and the fake sends SIGINT
+        # to its parent. dio must send SIGKILL, not SIGTERM, to the fake's process group, then
+        # wait for the fake, so it is reaped before the interrupt ends dio. The calls are
+        # recorded in order, since the `with` block's own short wait could reap the fake too.
+        self.list_in(self.max_dir, interrupt=True)
+        previous = signal.signal(signal.SIGINT, signal.default_int_handler)
+        self.addCleanup(signal.signal, signal.SIGINT, previous)
+        children, grandchildren, calls = [], [], []
+        real_communicate, real_wait, real_killpg = (subprocess.Popen.communicate,
+                                                    subprocess.Popen.wait, os.killpg)
+
+        def communicate(child, *args, **kwargs):
+            children.append(child)
+            self.addCleanup(child.wait)
+            self.kill_at_cleanup(child.pid)
+            self.assertEqual(child.stdout.readline(), b'ready\n')
+            with open(os.path.join(self.max_dir, 'agents.child'), encoding='utf-8') as f:
+                grandchildren.append(int(f.read()))
+            self.kill_at_cleanup(grandchildren[0])
+            os.kill(child.pid, signal.SIGUSR1)
+            return real_communicate(child, *args, **kwargs)
+
+        def wait(child, *args, **kwargs):
+            calls.append(('wait', child.pid))
+            return real_wait(child, *args, **kwargs)
+
+        def killpg(group, number):
+            calls.append(('killpg', group, number))
+            return real_killpg(group, number)
+        with mock.patch.object(dio.subprocess.Popen, 'communicate', communicate), \
+                mock.patch.object(dio.subprocess.Popen, 'wait', wait), \
+                mock.patch.object(dio.os, 'killpg', killpg):
+            with self.assertRaises(KeyboardInterrupt):
+                self.agents(timeout=5)  # a SIGINT that never came would end at 5 s, and fail
+        [child], [grandchild] = children, grandchildren
+        self.assertEqual(calls, [('killpg', child.pid, signal.SIGKILL), ('wait', child.pid)])
+        self.assertEqual(child.returncode, -signal.SIGKILL)
+        self.assertFalse(os.path.exists('/proc/%d' % child.pid))  # reaped before dio returned
+        self.assertTrue(self.ends(grandchild))  # killed with the group
+        self.assertEqual([run[4] for run in self.runs()], [self.max_dir])  # the team dir never ran
 
     def test_a_command_that_cannot_be_started_gives_each_dir_one_row_and_no_traceback(self):
         plain = self.world.write(self.world.base, 'not-executable', b'#!/bin/sh\nexit 0\n')
