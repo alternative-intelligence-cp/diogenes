@@ -1,6 +1,6 @@
 # 0.0-min: the finishing plan — ACCEPTED (2026-10-21)
 
-> **Status, 2026-10-21.** Proposed by the Team seat's D6 on `team/diogenes-0.0-finish-plan` from `a2e48db`, for a plan verifier and the merger. Scope: the merger's message that arrived at 09:20:10 EDT (`/home/randy/Team/META/diogenes/briefs/scope-D6-2026-10-21-from-diogenes_1.txt`), and `management_1`'s ledger choice, arrived 09:22:39 (step 7). [`MIN.md`](MIN.md) governs, unedited; a bare `:<n>` is its line at `a2e48db`. **Accepted 2026-10-21** by the merger's review, after D6v's PASS, and merged at `fbbbb7e`; the merger's rulings are in the last section. **Step 7 is merged** at `eac55d8` on 2026-10-22 ("Step 7's merge", at the end). The `docs/`, `src/` and `tests/` lines this file cites are `a2e48db`'s, where those trees are as at `29acd64`; step 7 moved some, so a brief that uses one re-resolves it by its text. **Step 8a is filed** at `8a45fe0` on 2026-10-22 ("Step 8a's merge", at the end): F5's condition holds, so 8b is built next. **Step 8b is merged** at `874a4dc` on 2026-10-23 ("Step 8b's merge", at the end): `dio who --agents`, opt-in by F5. It moved more of the `src/` and `tests/` lines this file cites, which a brief re-resolves by their text, as above. **The gate's record is merged** at `b3ed34e` on 2026-10-25 ("The gate's merge", at the end): every gated row passes, and the code part follows on the gate's branch.
+> **Status, 2026-10-21.** Proposed by the Team seat's D6 on `team/diogenes-0.0-finish-plan` from `a2e48db`, for a plan verifier and the merger. Scope: the merger's message that arrived at 09:20:10 EDT (`/home/randy/Team/META/diogenes/briefs/scope-D6-2026-10-21-from-diogenes_1.txt`), and `management_1`'s ledger choice, arrived 09:22:39 (step 7). [`MIN.md`](MIN.md) governs, unedited; a bare `:<n>` is its line at `a2e48db`. **Accepted 2026-10-21** by the merger's review, after D6v's PASS, and merged at `fbbbb7e`; the merger's rulings are in the last section. **Step 7 is merged** at `eac55d8` on 2026-10-22 ("Step 7's merge", at the end). The `docs/`, `src/` and `tests/` lines this file cites are `a2e48db`'s, where those trees are as at `29acd64`; step 7 moved some, so a brief that uses one re-resolves it by its text. **Step 8a is filed** at `8a45fe0` on 2026-10-22 ("Step 8a's merge", at the end): F5's condition holds, so 8b is built next. **Step 8b is merged** at `874a4dc` on 2026-10-23 ("Step 8b's merge", at the end): `dio who --agents`, opt-in by F5. It moved more of the `src/` and `tests/` lines this file cites, which a brief re-resolves by their text, as above. **The gate's record is merged** at `b3ed34e` on 2026-10-25 ("The gate's merge", at the end): every gated row passes, and the code part follows on the gate's branch. **The code part is merged** at `15d1c43` on 2026-10-29 ("D9's merge", at the end). It moved more of the `docs/`, `src/` and `tests/` lines this file cites, which a brief re-resolves by their text, as above.
 >
 > - **Numbering.** F1–F10 are this plan's decisions; U7 and U8 change `USING.md`, T6 the template; the build's own choices continue `src/README.md`'s at 23. No new experiment: a RESULT for DX-13 or DX-18 goes at the end of `meta/EXPERIMENTS.md`, with a pointer on the experiment's line.
 > - **Out:** all that :296 leaves to 0.1; DQ-26's scrub; the merger's four items (:156), commit A of step 7's branch.
@@ -275,3 +275,97 @@ The merger merged the gate's record, F8, at `b3ed34e`, after GF8v's PASS on `764
 
 - `EXPERIMENTS.md`:144 and the 10-minute leg's two files have held a session id since 2026-10-16, before ruling 8. They stay as filed, since the history keeps the id either way. If DQ-26 opens the repository, its scrub of absolute paths takes these too.
 - **Hours:** GF8 about 0.5 h (dispatched 20:02:46, its commit at 20:33:12), and GF8v under 0.5 h (from 20:36:37 to READY at 21:07:11).
+
+### D9's merge (`diogenes_4`, 2026-10-29)
+
+- **The merge:** `team/diogenes-0.0-gate` at `f6703d4` is merged `--no-ff` at `15d1c43`. The branch is D9's five commits on MAIN `b582164`:
+  - A `9be3965`: D8bv's findings 1, 2 and 4 as tests;
+  - B `5bc1c71`: findings 3, 7 and 8 as text;
+  - C `4d66f99`: `--max`'s 3000 s settled;
+  - D `ec8b2ef`: U7, U8 and U9;
+  - E `f6703d4`: M6's bound.
+
+  Past MAIN, main had moved only by `f319434` (`team-seat = Ailp-team_26`), which changes only ROLES.md, so the merge is clean.
+- **Who built and verified it:** D9 (general-purpose, Opus 5.5, 01:47:58–03:21:07 EDT), dispatched by `Ailp-team_25`. It worked from the brief `diogenes_3` ACCEPTED with `management_3`'s condition, and its report is `/home/randy/Team/REPORTS/D9-diogenes-0.0-code-part.md`. D9v (npk:verifier, Sonnet 5.5, 03:24:51–04:11:18), dispatched by `Ailp-team_26`, PASSED `f6703d4` with eight findings, none blocking (`/home/randy/Team/REPORTS/D9v-diogenes-0.0-code-part-verify.md`).
+  - **D9v's own worst case agrees with E's.** Under `watch -n 15`, `gone` showed at most 60.3 s after the first failed check on its runs. Under `-p`, it passed 75 s in about one run in six (75.01–75.05 s), and with M6b-style readings it reached 75.18 s.
+  - **The mutant:** `GRACE_SECONDS` + 1 fails `M6BoundTests` 160 times.
+- **The brief as dispatched** differs from the folded one only in its six fields, plus one change that `Ailp-team_25` disclosed itself. THE WEEK LINE now gives the week's reset as Wed 2026-11-04 at 07:00Z (02:00 EST, since the clocks go back on 2026-11-01), where the fold said 03:00. The Team's usage file agrees (`seven_day.resets_at` is 2026-11-04T07:00:00Z), and no instruction changed, so the merger accepted it.
+- **Ruling 2's condition applies, and E meets it.** E restates M6's bound with its margin (`src/README.md`, "When `gone` first shows: M6's bound"). No mechanism changed: `src/dio`:72 and :486–540 are as at MAIN.
+  - **Which instant:** decision 44 counts MIN:203's 75 s from the first failed check, the grace's start, and its 90 s from the kill. The merger's own derivation, from `src/dio`:526–538 before it read D9's, agrees.
+  - **The worst cases on this machine** (`dio who`'s run time R = 0.1 s):
+    - **`watch -n 15`,** MIN:203's own setup, with no resize: 60.5 s from the grace's start and 75.6 s from the kill, with margins of 14.5 s and 14.4 s.
+    - **`watch -p -n 15`:** up to 75.1 s and 90.1 s, with no margin. If a resize brings a run forward just after the fourth check, `gone` waits up to 90.1 s from the grace's start, which is about 105 s from the kill.
+    - **`watch -n 15` with the terminal resized during the grace:** up to 75.2 s and 90.4 s, with no margin.
+    - **M6b's readings,** which were a script's, not watch's: `gone` came 74.855 s after the grace's start (74.935 s after the exit line), 0.145 s inside, only because the first spacing was about 1 s short.
+  - **This is a known risk in 0.0. A re-run of M6 can read `gone` later than MIN:203's 75 s, and later than 90 s after the kill, with `dio` working as built. 0.1 runs M6 again before it merges.**
+  - **The fix is 0.1's.** Any of a grace a little short of four intervals, a bound of the grace plus one measured spacing, or M6 run only under `watch -n 15` with no `-p`, no script and no resize would remove the knife edge. Each changes `MIN.md`'s grace rule (:100) or its M6 row (:203), so each comes with its own M6 run. MIN:203 now carries a same-line note.
+- **The merger's check, 03:26–03:35:**
+  - **Branch and hygiene:**
+    - the branch is linear on MAIN, and the remote's old `7641f15` is an ancestor;
+    - each commit carries the brief's two attribution lines once, and Randy is author and committer;
+    - `diff --check` is clean, with no mode change, no new file, and nothing under `meta/`.
+  - **At each commit:**
+    - §7 reads 446 known /home/randy paths, exit 0;
+    - the suite passes 259, 259, 259, 262 and 266 tests under a 104-character TMPDIR, and 266 under a 204-character one at E;
+    - M7a passes, and nothing is left behind.
+  - **The strace write audit at E,** over 256 tests and 18 208 write-type calls:
+    - no call writes outside TMPDIR, and none names a real config dir, the Team tree or the real zone;
+    - no `dio` process names a `.key` path, and no real `claude` ran or was tried.
+  - **`dio who`:** against MAIN, 16 of 17 commands are identical. The other, `watch --help`, differs by C's text alone.
+  - **Citations:** every citation D9 added holds by its text.
+- **What C, D and E carry, checked against the rulings' terms:**
+  - **The cap:** "The cap" gives the ruling's four reasons, citing DX-13's RESULT and `EXPERIMENTS.md`:155, and labels the cache's hour a reading (terms 1 and 2).
+  - **U8 (ii) and (iii):** each part is labelled by what measured it, and the inbox part is a reading (term 3).
+  - **U9:** it labels the plain `kill`, the clean exit and the `kill -9` as each measured once, and a crash and the leftover file's remover as not measured (term 4). It cites E's derivation, with no 75 s of its own.
+  - **`M6BoundTests`:** it drives the injected clock alone, names its run time with its source, and matches the formulas within 1 µs (term d).
+- **Outside D9's fence, now noted:** MIN.md:128 and `EXPERIMENTS.md`:156 still called the cap provisional, and :156 cited the old heading "The cap, provisional". Each now carries a same-line note.
+- **USING.md's Team paths:** its (ii) now cites `/home/randy/Team/MANAGER-LOG.md` beside the D2c report it already cited. This is accepted, as the gate's record cites the Team's files.
+- **D9's slips,** from its report: a `cd` into its repository, a few `python3 -c` one-liners, and PATH's `python3`, which is the Workspace venv, for its read-only §7. None reaches the tree.
+- **Citations moved by D9,** from `b582164`'s lines, by their text:
+  - **`docs/USING.md`, in its sections:**
+    - caveat (ii) stays at :45, and (iii) moves from :46 to :51; both are rewritten by D;
+    - :74 is now :82, and :95 is now :104;
+    - "Arming", :105, is now :114, rewritten by C;
+    - U7's "What is measured", :114, is now :123, rewritten by D.
+  - **`docs/USING.md`, the cited lines:**
+    - :115–131 is now :127–143;
+    - :129 is now :141;
+    - :136 is now :148;
+    - the removal block at :151 is now :166, with its `rm` line at :167;
+    - :156 is now :171, :165 is :180, and :170 is :185.
+
+    U9's three new bullets are :151–153.
+  - **`src/README.md`:**
+    - :108 is now :158, and :161 is now :215;
+    - the three bullets of "The cap, provisional", at :141–143, are now :191, :196 and :197, under "The cap" (:189), with the ruling's four reasons at :192–195;
+    - E's derivation is :100–148, and decision 44 is :305.
+  - **`src/dio`:** :1028 stays. The help at :1533–1538 is now :1533–1536, so later lines move up by 2, `main` to :1558.
+  - **`tests/test_dio.py`:** :1042–1048 is now :1200–1206.
+- **D9v's findings:** there are eight, none blocking, ruled as follows.
+  1. **Check (7) was not wholly blind.** Accepted as disclosed.
+     - The fragments D9v saw gave E's headline figures, not its simulator's.
+     - The merger's derivation was made from `src/dio` before it read D9's.
+     - So E's worst case has two derivations made apart from it.
+  2. **`src/dio`:538's comparison is unpinned:** a +1 s mutant of the lost-race path survives. Carried to 0.1, which pins it with a test of two runs racing to publish an entry, before any change to the grace. It is pre-existing, D9 changed no mechanism, and M6's single poller never reaches it.
+  3. **The cache's hour is repeated without its label** at `src/README.md`:195 and :197. Term 2 is met by the label at :193, which governs "The cap":
+     - :195 is the ruling's own bullet under it;
+     - :197 gives the hour as the record's expectation.
+
+     The next commit to touch "The cap" labels both (0.1).
+  4. **"Provisional" at MIN.md:128 and `EXPERIMENTS.md`:156:** done here, by same-line notes.
+  5. **`watch.c` is unverified.** The man page supports each mode's spacing, and, by `-r`'s words, that a resize runs the command at once. The resize figures rest on D9's one read of the v4.0.4 source, and are taken as that:
+     - 75.2 s and 90.4 s under `-n`;
+     - 90.1 s from the grace's start under `-p`.
+
+     They widen a risk 0.0 already carries, and 0.1's M6 run meets them.
+  6. **U9's numbers take w + ε as 0.** The README states the assumption and its sensitivity: both worst cases stay inside 75 s and 90 s while w + ε is under 2.88 s a cycle. USING.md's "on this machine" points there. 0.1's M6 run measures it.
+  7. **Nits,** each for the next commit to touch its file, in 0.1:
+     - finding 1's test name;
+     - `tests/test_watch.py`:32's leftover `UNTESTED`;
+     - the README's R and Z rows, which cite D9's report outside the repository;
+     - decision 17's in-place amendment, unnoted in the decisions' header.
+  8. **D9v's own slips:** noted.
+     - Its `ls -l` of the Workspace venv's `python3` was a stat and a readlink.
+     - Its `ls-remote` on REPO's path listed refs.
+     - Nothing was written outside its scratch.
+- **Hours:** D9 took about 1.6 h, 01:47:58–03:21:07, and D9v about 0.8 h, 03:24:51–04:11:18.
