@@ -102,7 +102,7 @@ A message is made in place, as the line above makes it, and never moved or copie
 ## Watching the inbox
 
 - **One target.** A seat points `dio watch` only at its own account's inbox. Pointed at a `sessions/` directory, it would list that directory, which rule 7 forbids, and it could print a new `.key` file's path in its `WAKE` line (`src/README.md`, "Only for an inbox").
-- **Arming.** The seat runs `dio watch ~/.local/share/diogenes/inbox/<own account>` with its Bash tool's `run_in_background` (`src/README.md`, decision 14). The process is the background loop: by default it polls every 60 s (`--every`), and ends after 3000 s with no new file (`--max`). That cap is provisional until the gate's DX-13 legs, and the time past 10 minutes is untested until the gate's 2-hour leg (`src/README.md`, "The cap, provisional").
+- **Arming.** The seat runs `dio watch ~/.local/share/diogenes/inbox/<own account>` with its Bash tool's `run_in_background` (`src/README.md`, decision 14). The process is the background loop: by default it polls every 60 s (`--every`), and ends after 3000 s with no new file (`--max`). The merger kept that cap at the gate's merge (`src/README.md`, "The cap"), on the gate's DX-13 legs: *Measured* once each, on probe-tx under Claude Code 2.1.310, a `REARM` at 2 hours and at 12 hours woke the idle probe ([`meta/EXPERIMENTS.md`](../meta/EXPERIMENTS.md), DX-13's RESULT).
 - **Its exits:**
 
 | Exit status | Standard output | What it means, and what the seat does |

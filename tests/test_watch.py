@@ -28,7 +28,8 @@ from fixtures import CANARY, REPOSITORY, WatchClock, World
 
 dio = fixtures.load_dio()
 SECOND = 10 ** 9
-UNTESTED = "the time past 10 minutes is untested until the gate's 2-hour leg"
+SETTLED = "default 3000, settled by the gate's DX-13 legs"
+UNTESTED = "the time past 10 minutes is untested until the gate's 2-hour leg"  # until the gate
 
 
 def setUpModule():
@@ -579,20 +580,37 @@ class GapTests(WatchBase):
 
 
 class HelpTests(unittest.TestCase):
-    def test_the_help_says_the_default_cap_is_provisional_and_the_time_past_10_minutes_untested(self):
+    def test_the_help_gives_the_default_cap_as_settled_by_the_gates_legs_not_provisional(self):
+        # The merger's ruling at the gate's merge (FINISH.md, "The gate's merge"): 3000 s stands.
         world = World()
         self.addCleanup(world.close)
         result = world.run('watch', '--help')
         self.assertEqual(result.returncode, 0, result.stderr)
         text = ''.join(result.stdout.split())  # argparse wraps the text, even at a hyphen
-        self.assertIn(''.join('default 3000, provisional until the gate'.split()), text)
-        self.assertIn(''.join(UNTESTED.split()), text)
+        self.assertIn(''.join(SETTLED.split()), text)
+        for gone in ('provisional', 'untested', ''.join(UNTESTED.split())):
+            self.assertNotIn(gone, text)
 
-    def test_the_readme_says_the_time_past_10_minutes_is_untested(self):
+    def test_the_readme_gives_the_caps_ruling_with_its_reasons_and_no_longer_provisional(self):
         with open(os.path.join(REPOSITORY, 'src', 'README.md'), encoding='utf-8') as f:
-            text = ' '.join(f.read().split()).lower()
-        self.assertIn(UNTESTED.lower(), text)
-        self.assertIn('provisional', text)
+            lines = f.read().splitlines()
+        self.assertIn('### The cap', lines)
+        text = self.readme()
+        for reason in ('**Both exits woke an idle probe,** so the cap decides only what each '
+                       're-arm costs',
+                       '**The 10-minute wake read its context from the cache,** which a 5-minute '
+                       'cache would not have held. That the cache lives an hour is a reading, not '
+                       'a measurement',
+                       '**The 2-hour and 12-hour wakes came after the cache\'s life and wrote the '
+                       'context again:** 51 424 and 53 538 tokens for the probe. For the working '
+                       'seat that F7 names, that is about 467 k (`meta/EXPERIMENTS.md`:155)',
+                       '**3000 s re-arms inside the hour, with 10 minutes to spare.**',
+                       "DX-13's RESULT"):
+            self.assertIn(reason, text)
+        self.assertIn("**The merger ruled at the gate's merge that 3000 s stands, and is no longer "
+                      "provisional**", text)
+        for gone in ('provisional until', 'the cap, provisional', UNTESTED):
+            self.assertNotIn(gone.lower(), text.lower())
 
     @staticmethod
     def readme():
