@@ -248,9 +248,16 @@ class RuleTests(unittest.TestCase):
                       '**Run `dio who` unsandboxed.** From sandboxed Bash, every row reads '
                       '`unknown (checking)`',
                       "*Measured* at the gate's F9 legs",
-                      "DX-3's RESULT, (d)"):
+                      "DX-3's RESULT, (d)",
+                      # When gone shows: E's bound, not MIN.md's 75 s (D9's brief, U9).
+                      'When `gone` first shows is derived in [`src/README.md`](../src/README.md), '
+                      '"When `gone` first shows: M6\'s bound": under `watch -n 15`, with no '
+                      'terminal resize, at most 60.5 s after the first failed check on this '
+                      'machine, and 75.6 s after the kill.',
+                      'a known risk in 0.0'):
             with self.subTest(words=words):
                 self.assertIn(words, part)
+        self.assertIsNone(re.search(r'\b75 s\b', part))
 
     def test_the_printf_line_carries_the_gates_note_for_dontask_seats(self):
         # FINISH.md's U8, open point 2 (U74): the line as written was refused at its one try under

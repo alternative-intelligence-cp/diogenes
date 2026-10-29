@@ -525,6 +525,164 @@ class GraceTests(Base):
         self.assertEqual(os.listdir(elsewhere), [])
 
 
+class M6BoundTests(Base):
+    """Gate row M6's bound, as src/README.md derives it ("When `gone` first shows: M6's bound"),
+    measured through main's injected clock alone, with no sleep. Each check is one dio who run,
+    in-process, at the instant a poller's model gives it, on one entry whose pid is dead, and
+    `gone` first shows at the first run that prints it. Every time is a whole number of
+    microseconds, the clock's resolution and goneAt's stored precision."""
+
+    dead_world = GraceTests.dead_world  # one sessions file in the team root, its pid dead
+
+    US = 10 ** 6
+    INTERVAL = 15 * US  # T: MIN.md:203's `watch -n 15`
+    GRACE = 60 * US  # G: MIN.md:100's grace, written out, so that a change to GRACE_SECONDS shows
+    # R: dio who's run time, the largest of D9's 20 runs against a fixture tree of 24 sessions
+    # files on 2026-10-29, 0.061552 s (median 0.057480 s), rounded up to the tenth of a second
+    # (src/README.md, "When `gone` first shows: M6's bound", its terms).
+    RUN_TIME = US // 10
+    PHASE_STEP = US  # the kill's phase after the check before it, over that check's spacing
+    PLACE_STEP = US // 20  # a check's place in its run, from the run's start, over 0 to RUN_TIME
+    EDGE = 1  # each sweep also takes its edge, 1 us past its start
+    TOLERANCE = EDGE  # the worst found lies at most this far under the formula's supremum
+    # MIN.md:203's bounds: 75 s from the grace's start (decision 44), and 90 s from the kill.
+    BOUND = {'grace': 75 * US, 'kill': 90 * US}
+    # The margins src/README.md states, the bound less the worst case, with J at RUN_TIME and
+    # watch's own work, usleep's lateness and the reap at 0.
+    MARGIN = {('-n', 'grace'): 14500000, ('-n', 'kill'): 14400000,
+              ('-p', 'grace'): -100000, ('-p', 'kill'): -100000}
+
+    def formulas(self, spacing):
+        """src/README.md's worst cases at their suprema: (from the grace's start, from the kill)."""
+        T, R, G = self.INTERVAL, self.RUN_TIME, self.GRACE
+        if spacing == '-n':
+            return 4 * (T + R) + R, 5 * (T + R) + R
+        return G + T + R, G + 2 * T + R
+
+    def checks(self, spacing, u, v):
+        """The check instants, in us from run 0's start. Check 0 is the last before the kill,
+        check 1 the grace's start, at place u in its run, and check 5, the fourth after it, at
+        place v in its; the others sit where the derivation's worst phases put them, check 0 at
+        its run's start and the rest at their runs' ends. Under -n a run starts RUN_TIME +
+        INTERVAL after the one before (watch.c sleeps the interval once the run has ended); under
+        -p, INTERVAL after (it sleeps to the next interval)."""
+        R = self.RUN_TIME
+        step = self.INTERVAL + R if spacing == '-n' else self.INTERVAL
+        return [k * step + place for k, place in enumerate([0, u, R, R, R, v, R, R])]
+
+    def sweep(self, spacing):
+        """{(u, v, phase): (us from the grace's start to gone, us from the kill to gone, the check
+        that read gone)}, for every place u of the grace's start and v of the fourth check after
+        it in their runs, and every phase of the kill after the check before it."""
+        dead = self.dead_world()
+        entry = os.path.join(self.world.state, 'cache', dio.GraceCache.entry_name(
+            os.path.dirname(self.world.team_root), dead))
+        places = sorted({self.EDGE} | set(range(0, self.RUN_TIME + 1, self.PLACE_STEP)))
+        start, found = self.clock.moment, {}
+        for u in places:
+            for v in places:
+                checks = self.checks(spacing, u, v)
+                for phase in sorted({self.EDGE} | set(range(self.PHASE_STEP, checks[1] - checks[0],
+                                                             self.PHASE_STEP))):
+                    if os.path.exists(entry):
+                        os.unlink(entry)  # check 0 passed, and a passing check removes the entry
+                    for k in range(1, len(checks)):
+                        self.clock.moment = start + timedelta(microseconds=checks[k])
+                        state = self.state(dead)
+                        if k == 1:  # the grace starts at the first failed check's clock reading
+                            self.assertEqual(self.grace_entry(dead)['firstFailedAt'],
+                                             dio.iso_z(self.clock.moment))
+                        if state == 'gone':
+                            break
+                        self.assertEqual(state, 'unknown (checking)')
+                    else:
+                        self.fail('no check read gone')
+                    kill = checks[0] + phase
+                    found[(u, v, phase)] = (checks[k] - checks[1], checks[k] - kill, k)
+        return found
+
+    def assert_worst(self, spacing, found):
+        """The worst found lies under the formula's supremum, within TOLERANCE of it, and the
+        bound less it is at least the stated margin. Returns it, from the grace's start and from
+        the kill."""
+        worst = {'grace': max(times[0] for times in found.values()),
+                 'kill': max(times[1] for times in found.values())}
+        for name, formula in zip(('grace', 'kill'), self.formulas(spacing)):
+            with self.subTest(spacing=spacing, counted_from=name):
+                self.assertLessEqual(worst[name], formula)
+                self.assertLessEqual(formula - worst[name], self.TOLERANCE)
+                self.assertGreaterEqual(self.BOUND[name] - worst[name],
+                                        self.MARGIN[(spacing, name)])
+        return worst['grace'], worst['kill']
+
+    def test_under_watch_n_15_gone_shows_at_the_fourth_check_and_keeps_the_stated_margins(self):
+        found = self.sweep('-n')
+        worst_grace, worst_kill = self.assert_worst('-n', found)
+        self.assertEqual({times[2] for times in found.values()}, {5})  # 4 spacings after check 1
+        self.assertLess(worst_grace, self.BOUND['grace'])  # never 75 s after the grace's start
+        self.assertGreater(worst_kill, self.BOUND['grace'])  # after the kill it can pass 75 s,
+        self.assertLess(worst_kill, self.BOUND['kill'])  # inside 90 s
+
+    def test_under_watch_precise_gone_can_show_past_75_s_from_the_grace_a_known_risk(self):
+        found = self.sweep('-p')
+        worst_grace, worst_kill = self.assert_worst('-p', found)
+        # The knife edge: four intervals are the grace to the microsecond, so the fourth check
+        # after the grace's start reads gone when its place in its run is at or past the grace
+        # start's, and else the fifth does.
+        for (u, v, phase), times in found.items():
+            with self.subTest(u=u, v=v, phase=phase):
+                self.assertEqual(times[2], 5 if v >= u else 6)
+        at_one_place, one_us_later = found[(0, 0, self.EDGE)], found[(self.EDGE, 0, self.EDGE)]
+        self.assertEqual((at_one_place[0], at_one_place[2]), (self.GRACE, 5))
+        self.assertEqual((one_us_later[0], one_us_later[2]),
+                         (self.GRACE + self.INTERVAL + self.RUN_TIME - self.EDGE, 6))
+        self.assertGreater(worst_grace, self.BOUND['grace'])  # the known risk in 0.0
+        self.assertGreater(worst_kill, self.BOUND['kill'])
+
+    def test_m6bs_seven_readings_replayed_read_checking_to_the_fifth_and_gone_at_the_sixth(self):
+        # M6b's readings at their lines' times in the gate's record (CTL 16:13:27.003Z to
+        # 16:14:57.038Z), as the checks' clock readings: the first four spacings sum to 59.679 s,
+        # short of the grace, so gone waits for reading 6, 74.855 s after reading 1.
+        dead = self.dead_world()
+        moments = [dio.parse_iso_z('2026-10-24T%s000Z' % time) for time in (
+            '16:13:27.003', '16:13:41.171', '16:13:56.341', '16:14:11.522', '16:14:26.682',
+            '16:14:41.858', '16:14:57.038')]
+        states = []
+        for moment in moments:
+            self.clock.moment = moment
+            states.append(self.state(dead))
+        self.assertEqual(states, ['unknown (checking)'] * 5 + ['gone'] * 2)
+        self.assertEqual(moments[4] - moments[0], timedelta(seconds=59, milliseconds=679))
+        self.assertEqual(moments[5] - moments[0], timedelta(seconds=74, milliseconds=855))
+
+    def test_src_readme_states_the_bound_its_margins_its_run_time_and_the_known_risk(self):
+        with open(os.path.join(REPOSITORY, 'src', 'README.md'), encoding='utf-8') as f:
+            text = ' '.join(f.read().split())
+        part = text[text.index("### When `gone` first shows: M6's bound"):
+                    text.index('## What `dio` writes')]
+        seconds = {spacing: ['%.1f s' % (value / self.US) for value in self.formulas(spacing)]
+                   for spacing in ('-n', '-p')}
+        margin = {key: ('margin %.1f s' % (value / self.US)).replace('-', '\N{MINUS SIGN}')
+                  for key, value in self.MARGIN.items()}
+        for words in ('| `watch -n 15` | 4(T + R + w + ε) + R = %s; %s | 5(T + R + w + ε) + R + Z '
+                      '= %s; %s |' % (seconds['-n'][0], margin[('-n', 'grace')], seconds['-n'][1],
+                                      margin[('-n', 'kill')]),
+                      '| `watch -p -n 15` | under G + T + J = %s; %s, none | under G + 2T + J + Z '
+                      '= %s; %s, none |' % (seconds['-p'][0], margin[('-p', 'grace')],
+                                            seconds['-p'][1], margin[('-p', 'kill')]),
+                      "`dio who`'s run time, %.1f s: the largest of 20 runs" % (
+                          self.RUN_TIME / self.US),
+                      '0.061552 s, with a median of 0.057480 s, rounded up to the tenth',
+                      "**The 75 s counts from the grace's start, the first failed check, and the "
+                      '90 s from the kill** (decision 44)',
+                      '**Can a re-run read `gone` later than 75 s? Yes.**',
+                      '**This is a known risk in 0.0:**',
+                      '**0.1 runs M6 again before 0.1 merges.**',
+                      'D9 changes no mechanism'):
+            with self.subTest(words=words):
+                self.assertIn(words, part)
+
+
 class OutputTests(Base):
     def setUp(self):
         super().setUp()
