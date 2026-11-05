@@ -7,9 +7,9 @@ Who holds each role in this repository. `dio who --address <role>` resolves a ro
 - **Format:** one role per line, `<role> = <holder>[, <holder>…]`, inside the fenced block below. Parsers read only the lines inside that block, so nothing outside it is a role line.
 
 ```text
-team-seat = Ailp-team_61
+team-seat = Ailp-team_67
 merger = diogenes_7
-poster = management_21, diogenes_7
+poster = management_22, diogenes_7
 ```
 
 What each role is:
